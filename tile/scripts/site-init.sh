@@ -22,7 +22,7 @@
 # command is not already registered.
 #
 # Trunk: --trunk, else origin/HEAD's target, else the first existing of dev,
-# main, master. A second run makes no changes. Prints what it created and the
+# main, master, else the current branch (a repository with no commits yet). A second run makes no changes. Prints what it created and the
 # next steps (enable Pages; raise the opt-in PR with its own entry). Warns when
 # tessl.json is not in vendored mode, since the workflows run the vendored tile.
 # Exits 2 on a usage error or when not at a git repository's root; no existing
@@ -68,6 +68,7 @@ if [ -z "$trunk" ]; then
       if git rev-parse -q --verify "refs/heads/$b" >/dev/null || git rev-parse -q --verify "refs/remotes/origin/$b" >/dev/null; then trunk=$b; break; fi
     done
   fi
+  [ -n "$trunk" ] || trunk=$(git symbolic-ref -q --short HEAD 2>/dev/null) || trunk=
   [ -n "$trunk" ] || { echo "site-init.sh: cannot find the trunk; pass --trunk" >&2; exit 2; }
 fi
 
