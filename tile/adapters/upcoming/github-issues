@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Upcoming-work adapter: open GitHub issues.
+#
+# Usage: github-issues <project-dir>
+#
+# Reads `repository` from <project-dir>/site/project.yaml (a `key: value`
+# line); falls back to `gh repo view --json nameWithOwner` when absent.
+# Lists open issues (up to 100) and writes a JSON array to stdout:
+#   [{"title": str, "ref": "#<number>", "state": "open", "theme": str}]
+# `theme` is the first label named `theme:<x>`, prefix removed and trimmed,
+# else "". An empty issue list gives [].
+#
+# Env: SITE_GH  the gh command to run (default: gh); tests substitute a stub.
+# Exit: non-zero with a message on stderr when gh fails.
+echo "not implemented" >&2
+exit 1
