@@ -2,7 +2,7 @@
 # site-init.sh [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
 #
 # Opt the project in the current directory (a git repository's root) into
-# proj-site. Run it as `bash .tessl/plugins/mhclg-aaai/proj-site/scripts/site-init.sh`
+# proj-site. Run it as `bash .tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/site-init.sh`
 # after `tessl install mhclg-aaai/proj-site`.
 #
 # Creates, only where absent (an existing file is never changed):

@@ -4,3 +4,42 @@ description: Opts a myelin project into proj-site and builds or previews its pub
 ---
 
 # Site setup
+
+proj-site gives a project a public site on GitHub Pages: a hand-written overview and guides, generated reference docs, a timeline read from the git history, per-PR entries, weekly summaries and upcoming work. This skill opts a project in and builds the site. Its directory also holds the runtime every opted-in project uses: `core/` (the build), `adapters/`, `scripts/` and `templates/`.
+
+The harness states this skill's base directory when it loads the skill. Call it `$SKILL_DIR`. Run every script with `bash` (or `python3` for `.py`): the registry does not keep executable bits.
+
+## Opting a project in
+
+1. **Check the prerequisites.** The repository root is the working directory; `tessl.json` has `"mode": "vendored"` (the workflows run the tile from `.tessl/plugins/mhclg-aaai/proj-site/`, so it must be committed); the tile is installed (`tessl install mhclg-aaai/proj-site`). If the mode is not vendored, say so and ask before changing it.
+2. **Run the opt-in script.** Do not hand-write the files it creates:
+
+   ```sh
+   bash "$SKILL_DIR/scripts/site-init.sh" [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
+   ```
+
+   - Leave `--content-type` out unless the user names one: the script picks `both` when the project has Python and `knowledge` otherwise. Pass it when the detection is wrong for the project, for example a tooling repository whose users want guides, not reference pages.
+   - Pass `--with-claude-hook` only when asked for it. It registers `scripts/hook-pr-create.sh` in `.claude/settings.json`, which blocks raising a pull request until the branch has its per-PR entry. `scripts/check-pr.sh` is the check the PR workflow runs.
+   - It creates only what is missing, so re-running it is safe.
+3. **Review what it created**: `site/project.yaml`, `site/content/overview.md` and `.github/workflows/site-check.yml` and `site-pages.yml`. Fill in the overview from the README in plain language; everything under `site/` is public (no named people, no secrets).
+4. **Build locally** (below) to confirm the site renders.
+5. **Commit** the files on the opt-in branch. Before raising the pull request, the `site-writing` skill writes the per-PR entry, and the first weekly summary, which is always due on opt-in.
+6. **Enable GitHub Pages** with GitHub Actions as the source, when the user has GitHub access: `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`. This publishes a public site, so confirm with the user first. Without access, list it as a next step.
+
+Pushing a commit that adds workflows needs a token with the `workflow` scope; if a push is refused for that, ask the user to run `gh auth refresh -s workflow`.
+
+## Building or previewing the site
+
+```sh
+SITE_OFFLINE=1 bash "$SKILL_DIR/core/build.sh" . <out-dir>          # renders <out-dir>/public
+hugo server --source <out-dir>/src                                  # preview
+```
+
+`SITE_OFFLINE=1` skips the GitHub lookups for PR numbers; the upcoming-work adapter still calls GitHub unless `upcoming.source` is `stub`. Build errors name the failing step (the project file, an adapter, or Hugo).
+
+## Do not
+
+- Do not hand-write `project.yaml` or the workflows; run the script, then edit.
+- Do not add the Claude Code hook unless asked.
+- Do not enable Pages without the user's confirmation; it publishes the site.
+- Do not migrate private weeknotes into `site/`.
