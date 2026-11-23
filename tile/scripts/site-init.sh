@@ -94,7 +94,7 @@ What $name is, who it is for, and what it produces. Edit this page.
 MD
 
 write_new .github/workflows/site-check.yml < "$tile/templates/workflows/site-check.yml"
-sed "s/__TRUNK__/$trunk/g" "$tile/templates/workflows/site-pages.yml" | write_new .github/workflows/site-pages.yml
+write_new .github/workflows/site-pages.yml < <(sed "s/__TRUNK__/$trunk/g" "$tile/templates/workflows/site-pages.yml")
 
 if [ "$hook" = 1 ]; then
   s=.claude/settings.json
