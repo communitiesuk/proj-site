@@ -36,54 +36,54 @@ PY
 
 test_pages_paths_and_titles() {
   make_fixture "$TMP/p"
-  out=$("$ADAPTER" "$TMP/p")
-  assert_eq '["pkg/mod.md","pkg/nodoc.md"]' "$(jq -c '[.[].path]' <<<"$out")"
-  assert_eq '["pkg.mod","pkg.nodoc"]' "$(jq -c '[.[].title]' <<<"$out")"
+  out=$("$ADAPTER" "$TMP/p") || return 1
+  assert_eq '["pkg/mod.md","pkg/nodoc.md"]' "$(jq -c '[.[].path]' <<<"$out")" || return 1
+  assert_eq '["pkg.mod","pkg.nodoc"]' "$(jq -c '[.[].title]' <<<"$out")" || return 1
 }
 
 test_content_has_docstrings_and_signatures() {
   make_fixture "$TMP/p"
   c=$("$ADAPTER" "$TMP/p" | jq -r '.[] | select(.path=="pkg/mod.md") | .content')
-  assert_contains "$c" "Module summary line."
-  assert_contains "$c" '## `public(a, b: int = 2, *args, key='
-  assert_contains "$c" '**kw) -> str`'
-  assert_contains "$c" "Public function doc."
-  assert_contains "$c" '## class `Widget`'
-  assert_contains "$c" "Widget doc."
-  assert_contains "$c" '### `run(self, speed: float = 1.0)`'
-  assert_contains "$c" "Run doc."
+  assert_contains "$c" "Module summary line." || return 1
+  assert_contains "$c" '## `public(a, b: int = 2, *args, key=' || return 1
+  assert_contains "$c" '**kw) -> str`' || return 1
+  assert_contains "$c" "Public function doc." || return 1
+  assert_contains "$c" '## class `Widget`' || return 1
+  assert_contains "$c" "Widget doc." || return 1
+  assert_contains "$c" '### `run(self, speed: float = 1.0)`' || return 1
+  assert_contains "$c" "Run doc." || return 1
 }
 
 test_private_names_excluded() {
   make_fixture "$TMP/p"
   c=$("$ADAPTER" "$TMP/p" | jq -r '.[].content')
-  assert_contains "$c" "Public function doc."
-  assert_not_contains "$c" "_private"
-  assert_not_contains "$c" "_internal"
-  assert_not_contains "$c" "_Hidden"
-  assert_not_contains "$c" "Nope"
+  assert_contains "$c" "Public function doc." || return 1
+  assert_not_contains "$c" "_private" || return 1
+  assert_not_contains "$c" "_internal" || return 1
+  assert_not_contains "$c" "_Hidden" || return 1
+  assert_not_contains "$c" "Nope" || return 1
 }
 
 test_excluded_dirs_and_files() {
   make_fixture "$TMP/p"
   paths=$("$ADAPTER" "$TMP/p" | jq -r '.[].path')
-  assert_contains "$paths" "pkg/mod.md"
+  assert_contains "$paths" "pkg/mod.md" || return 1
   for bad in tests hidden site venv node_modules test_mod empty; do
-    assert_not_contains "$paths" "$bad"
+    assert_not_contains "$paths" "$bad" || return 1
   done
 }
 
 test_no_python_gives_empty_array() {
   mkdir -p "$TMP/e" && echo hi > "$TMP/e/README.md"
-  assert_eq '[]' "$("$ADAPTER" "$TMP/e" | jq -c .)"
+  assert_eq '[]' "$("$ADAPTER" "$TMP/e" | jq -c .)" || return 1
 }
 
 test_syntax_error_skipped() {
   make_fixture "$TMP/p"
   echo 'def broken(:' > "$TMP/p/pkg/bad.py"
   "$ADAPTER" "$TMP/p" >"$TMP/out" 2>"$TMP/err"
-  assert_eq '["pkg/mod.md","pkg/nodoc.md"]' "$(jq -c '[.[].path]' "$TMP/out")"
-  assert_contains "$(cat "$TMP/err")" "bad.py"
+  assert_eq '["pkg/mod.md","pkg/nodoc.md"]' "$(jq -c '[.[].path]' "$TMP/out")" || return 1
+  assert_contains "$(cat "$TMP/err")" "bad.py" || return 1
 }
 
 test_code_never_executed() {
@@ -94,7 +94,7 @@ open("$TMP/marker", "w").write("ran")
 def f():
     """F."""
 PY
-  out=$("$ADAPTER" "$TMP/p")
-  assert_eq '["evil.md"]' "$(jq -c '[.[].path]' <<<"$out")"
-  assert_no_path "$TMP/marker"
+  out=$("$ADAPTER" "$TMP/p") || return 1
+  assert_eq '["evil.md"]' "$(jq -c '[.[].path]' <<<"$out")" || return 1
+  assert_no_path "$TMP/marker" || return 1
 }
