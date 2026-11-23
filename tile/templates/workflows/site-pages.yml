@@ -1,0 +1,55 @@
+# Installed by proj-site's site-init.sh. Builds the project site and deploys
+# it to GitHub Pages on every push to the trunk. Enable Pages for the
+# repository with "GitHub Actions" as the source.
+name: Site
+on:
+  push:
+    branches: [__TRUNK__]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HUGO_VERSION: 0.170.1
+      SITE_TILE: .tessl/plugins/mhclg-aaai/proj-site
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install Hugo
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/hugo.tgz" \
+            "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.tar.gz"
+          tar -xzf "$RUNNER_TEMP/hugo.tgz" -C "$RUNNER_TEMP" hugo
+          sudo mv "$RUNNER_TEMP/hugo" /usr/local/bin/hugo
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - id: pages
+        uses: actions/configure-pages@v6
+      - name: Build site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_BASE_URL: ${{ steps.pages.outputs.base_url }}/
+        run: bash "$SITE_TILE/core/build.sh" . "$RUNNER_TEMP/site"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site/public
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
