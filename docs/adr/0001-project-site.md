@@ -11,7 +11,7 @@ date: 2026-11-23
 
 Each opted-in myelin project (communitiesuk/myelin) should have a GitHub Pages site for two audiences: users of the project's outputs (knowledge, code, or both), and stakeholders who want to know what has been done, what was recently completed, and what is coming up.
 
-Nothing publishes user-facing material today. The stakeholder story exists only as weeknotes in `../myelin/weeknotes`, which is gitignored in myelin, deliberately. The site replaces them: repositories with a site have no weeknotes. They remain the model for the periodic summary's shape: plain-language outcomes grouped by theme with PR and issue references, a "Completed" section, an "In flight / queued" section, and a period with counts. History lives in the git graph (ADRs, plans, and trailers such as `Derives-From` and `Consumed-By`). Upcoming work is tracked in GitHub issues for now.
+Nothing publishes user-facing material today. The stakeholder story exists only as weeknotes in `../myelin/weeknotes`, which is gitignored in myelin, deliberately. The weeknotes are the model for the periodic summary's shape: plain-language outcomes grouped by theme with PR and issue references, a "Completed" section, an "In flight / queued" section, and a period with counts. History lives in the git graph (ADRs, plans, and trailers such as `Derives-From` and `Consumed-By`). Upcoming work is tracked in GitHub issues for now.
 
 ## Decision
 
@@ -29,7 +29,7 @@ Nothing publishes user-facing material today. The stakeholder story exists only 
 - a per-PR entry for each PR;
 - a periodic summary in the weeknotes style (plain-language outcomes by theme, PR and issue references, completed and upcoming).
 
-The site's stakeholder content replaces the weeknotes.
+The site's stakeholder content replaces the weeknotes and is written for a public audience under the public content rules below.
 
 **Summary cadence.** The periodic summary can be triggered manually. It also falls due each week: at the first PR on a Thursday, or the next PR after that, unless one has already been produced that week.
 
@@ -50,7 +50,7 @@ The site's stakeholder content replaces the weeknotes.
 
 - **Build it into myelin.** Rejected: the site is a separate project that myelin projects opt into.
 - **Wire GitHub issues directly into the site.** Rejected: the upcoming-work source may change, so it sits behind an adapter.
-- **Republish or mirror the weeknotes.** Rejected: the site replaces them, so repositories with a site have none.
+- **Republish or mirror the weeknotes.** Rejected: the site replaces the weeknotes rather than mirroring them.
 - **A rolling "recently" page rewritten on every PR.** Rejected: parallel PRs would conflict on a shared page.
 - **Per-PR entries grouped only at build time, with no periodic summary.** Not chosen: the human chose per-PR entries plus a periodic summary.
 - **A harness-specific hook alone, or git hooks alone.** Rejected in favour of the skill-plus-CI split. Git hooks are agent-neutral but cannot write prose without calling a specific agent's CLI.
