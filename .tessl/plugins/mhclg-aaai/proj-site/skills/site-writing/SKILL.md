@@ -10,9 +10,9 @@ The project's public site tells stakeholders what was explored, decided, built a
 - a **per-PR entry**, on every branch;
 - a **weekly summary**, on the first branch raised once one is due.
 
-A CI check (`scripts/check-pr.sh` in this tile) fails the pull request when either is missing. It only checks that the files exist; what they say is yours to get right.
+A CI check (`skills/site-setup/scripts/check-pr.sh` in this tile) fails the pull request when either is missing. It only checks that the files exist; what they say is yours to get right.
 
-The harness states this skill's base directory when it loads the skill. Call it `$SKILL_DIR`; the tile's scripts are in `$SKILL_DIR/../../scripts/`.
+The harness states this skill's base directory when it loads the skill. Call it `$SKILL_DIR`; the tile's scripts are in `$SKILL_DIR/../site-setup/scripts/`.
 
 ## Public content rules
 
@@ -49,7 +49,7 @@ Commit messages are source material, not text to copy: read them for what change
 
 ## 2. The weekly summary, when due
 
-1. Find the due week: `bash "$SKILL_DIR/../../scripts/check-pr.sh" --due-week` prints it, for example `2026-W01`. It is the ISO week (`%G-W%V`, UTC) containing the most recent Thursday 00:00 UTC. Do not compute it from today's calendar week.
+1. Find the due week: `bash "$SKILL_DIR/../site-setup/scripts/check-pr.sh" --due-week` prints it, for example `2026-W01`. It is the ISO week (`%G-W%V`, UTC) containing the most recent Thursday 00:00 UTC. Do not compute it from today's calendar week.
 2. The summary is **due** when `site/content/summaries/<due-week>.md` is not on the trunk and not in another open pull request (`gh pr list --state open --json files`, where `gh` is available). If it is not due, stop: write the entry only.
 3. Write `site/content/summaries/<due-week>.md`, covering the period since the previous summary's `period_end` (or since the project began, for the first):
 
@@ -81,7 +81,7 @@ Commit messages are source material, not text to copy: read them for what change
 Run the check the CI runs, and fix what it reports before raising the pull request:
 
 ```sh
-bash "$SKILL_DIR/../../scripts/check-pr.sh" --base <trunk> --head HEAD
+bash "$SKILL_DIR/../site-setup/scripts/check-pr.sh" --base <trunk> --head HEAD
 ```
 
 ## Do not

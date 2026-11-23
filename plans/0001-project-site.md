@@ -218,3 +218,25 @@ Implements [ADR 0001](../docs/adr/0001-project-site.md).
   into each generated entry and layouts group with `GroupByParam
   "week"`. Hugo ships as a single release binary, so CI installs it by
   download; the Pages deploy itself is verified in step 13.
+- 2026-11-23, steps 2-12: built and landed. Decisions taken during
+  execution: the tessl registry delivers only `.md .txt .json .yml .yaml
+  .toml .sh .py .js .ts .tsx .jsx` files and drops the executable bit, so
+  adapters are `.sh`/`.py` run through their interpreter and Hugo layouts ship
+  as `*.html.txt`, renamed at build time; the registry archive holds only the
+  manifest and `skills/`, so the runtime (`core/`, `adapters/`, `scripts/`,
+  `templates/`) lives inside a third skill, `site-setup`
+  (`tile/skills/site-setup/`), which also opts projects in and builds the
+  site. Paths in steps 3-12 that read `tile/core/` etc. are under
+  `tile/skills/site-setup/`. The project name in `project.yaml` comes from
+  the origin remote. The test harness was fixed early so a failed assertion
+  fails its test (`set -e` is ignored inside `if`).
+- 2026-11-23, step 13 (this repository): opted in; the opt-in PR (#14)
+  failed the check without an entry and summary and passed with them; the
+  Pages deploy published https://communitiesuk.github.io/proj-site/; the
+  scan of the built site found no author names or secrets. Two pilot bugs
+  fixed: the site-title link ignored the Pages base path, and the check's
+  suggested entry name used `head` in Actions. Open: the hook matches the
+  PR-creation command's text anywhere in a Bash command, including heredoc
+  content, so it can block unrelated commands; the merge in `land` does not
+  wait for checks, so enforcement needs branch protection requiring the
+  `check` status. Second pilot: myelin, next.

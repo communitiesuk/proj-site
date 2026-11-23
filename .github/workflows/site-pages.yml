@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SITE_BASE_URL: ${{ steps.pages.outputs.base_url }}/
-        run: bash "$SITE_TILE/core/build.sh" . "$RUNNER_TEMP/site"
+        run: bash "$SITE_TILE/skills/site-setup/core/build.sh" . "$RUNNER_TEMP/site"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: ${{ runner.temp }}/site/public

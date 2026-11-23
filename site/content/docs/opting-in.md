@@ -21,7 +21,7 @@ weight: 1
 2. Run the opt-in script from the repository root:
 
    ```sh
-   bash .tessl/plugins/mhclg-aaai/proj-site/scripts/site-init.sh [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
+   bash .tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/site-init.sh [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
    ```
 
    It creates `site/project.yaml`, a stub `site/content/overview.md`, and two
