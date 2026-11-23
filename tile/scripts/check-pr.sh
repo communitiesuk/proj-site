@@ -11,7 +11,8 @@
 # Check 1 (change entry): `git diff <base>...<head>` must ADD (status A) at
 #   least one file under site/content/changes/. Otherwise the failure message
 #   names site/content/changes/<YYYY-MM-DD>-<branch-slug>.md and the
-#   `site-writing` skill.
+#   `site-writing` skill. The branch is $GITHUB_HEAD_REF when set (in Actions
+#   the checkout is a detached merge commit), else <head>'s branch name.
 #
 # Check 2 (summary due): the due summary is
 #   site/content/summaries/<%G-W%V>.md for the ISO week containing the most
