@@ -1,6 +1,6 @@
 # Tests for the upcoming-work adapters (tile/adapters/upcoming).
 
-GH_ISSUES="$TILE/adapters/upcoming/github-issues"
+GH_ISSUES="$TILE/adapters/upcoming/github-issues.sh"
 
 # Make a project in $TMP/p; write a gh stub that prints $1 (recorded JSON).
 setup_gh() {
@@ -16,7 +16,7 @@ STUB
   export SITE_GH="$TMP/gh"
 }
 
-run_issues() { "$GH_ISSUES" "$TMP/p"; }
+run_issues() { bash "$GH_ISSUES" "$TMP/p"; }
 
 test_theme_label_extracted() {
   setup_gh '[{"number":7,"title":"Add X","state":"OPEN","url":"u","labels":[{"name":"theme:Release assurance"}]}]'
@@ -77,12 +77,12 @@ test_gh_failure_exits_nonzero_with_message() {
 test_stub_default_item() {
   mkdir -p "$TMP/p/site"
   assert_eq '[{"title":"Stub item","ref":"#0","state":"open","theme":""}]' \
-    "$("$TILE/adapters/upcoming/stub" "$TMP/p" | jq -c .)"
+    "$(bash "$TILE/adapters/upcoming/stub.sh" "$TMP/p" | jq -c .)"
 }
 
 test_stub_reads_file() {
   mkdir -p "$TMP/p/site"
   echo '[{"title":"A","ref":"#1","state":"open","theme":"T"}]' > "$TMP/p/site/upcoming-stub.json"
   assert_eq '[{"title":"A","ref":"#1","state":"open","theme":"T"}]' \
-    "$("$TILE/adapters/upcoming/stub" "$TMP/p" | jq -c .)"
+    "$(bash "$TILE/adapters/upcoming/stub.sh" "$TMP/p" | jq -c .)"
 }
