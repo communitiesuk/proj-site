@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Run every tests/test_*.sh. Each test_* function runs in its own subshell
+# with a fresh $TMP. Exits non-zero if any test fails.
+#
+# Usage: tests/run.sh [pattern]   # only files whose name contains pattern
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+pass=0; failed=0
+for file in "$here"/test_*.sh; do
+  [ -e "$file" ] || continue
+  case "$(basename "$file")" in *"${1:-}"*) ;; *) continue;; esac
+  for t in $(bash -c ". '$here/lib.sh'; . '$file'; declare -F" | awk '{print $3}' | grep '^test_'); do
+    tmp=$(mktemp -d)
+    if (cd "$tmp" && TMP="$tmp" && . "$here/lib.sh" && . "$file" && set -e && "$t") >"$tmp.log" 2>&1; then
+      pass=$((pass+1)); printf 'ok   %s %s\n' "$(basename "$file")" "$t"
+    else
+      failed=$((failed+1)); printf 'FAIL %s %s\n' "$(basename "$file")" "$t"; sed 's/^/     /' "$tmp.log"
+    fi
+    rm -rf "$tmp" "$tmp.log"
+  done
+done
+printf '\n%d passed, %d failed\n' "$pass" "$failed"
+[ "$failed" -eq 0 ]
