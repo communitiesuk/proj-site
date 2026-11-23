@@ -57,6 +57,7 @@ test_content_has_docstrings_and_signatures() {
 test_private_names_excluded() {
   make_fixture "$TMP/p"
   c=$("$ADAPTER" "$TMP/p" | jq -r '.[].content')
+  assert_contains "$c" "Public function doc."
   assert_not_contains "$c" "_private"
   assert_not_contains "$c" "_internal"
   assert_not_contains "$c" "_Hidden"
@@ -66,6 +67,7 @@ test_private_names_excluded() {
 test_excluded_dirs_and_files() {
   make_fixture "$TMP/p"
   paths=$("$ADAPTER" "$TMP/p" | jq -r '.[].path')
+  assert_contains "$paths" "pkg/mod.md"
   for bad in tests hidden site venv node_modules test_mod empty; do
     assert_not_contains "$paths" "$bad"
   done
