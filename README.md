@@ -15,16 +15,18 @@ The site has two audiences:
 ## What ships
 
 Everything a project installs lives under `tile/`, packaged as the tessl
-tile `mhclg-aaai/proj-site`:
+tile `mhclg-aaai/proj-site`. The registry archive holds only the manifest and
+`skills/`, so the runtime lives inside the `site-setup` skill
+(`tile/skills/site-setup/`, written `S/` below):
 
 | Path | What it is |
 | --- | --- |
-| `tile/core/` | The build: bash 4+ with `git`, `gh` and `jq`, plus Hugo. |
-| `tile/adapters/upcoming/` | Upcoming-work adapters (`github-issues`, `stub`). |
-| `tile/adapters/reference/` | Reference-docs adapters, one per language (`python`). |
-| `tile/scripts/` | The PR check, the opt-in script and the Claude Code hook. |
-| `tile/skills/` | `site-writing` (entries and summaries) and `site-update` (keeps docs aligned). |
-| `tile/templates/workflows/` | The PR-check and Pages workflows an opted-in project installs. |
+| `S/core/` | The build: bash 4+ with `git`, `gh` and `jq`, plus Hugo. |
+| `S/adapters/upcoming/` | Upcoming-work adapters (`github-issues`, `stub`). |
+| `S/adapters/reference/` | Reference-docs adapters, one per language (`python`). |
+| `S/scripts/` | The PR check, the opt-in script and the Claude Code hook. |
+| `tile/skills/` | `site-setup` (opt in, build), `site-writing` (entries and summaries) and `site-update` (keeps docs aligned). |
+| `S/templates/workflows/` | The PR-check and Pages workflows an opted-in project installs. |
 
 ## What an opted-in project holds
 
@@ -116,7 +118,7 @@ where they publicised the project (show and tells, talks). No secrets.
 
 ### Upcoming-work adapter
 
-A script at `tile/adapters/upcoming/<source>.sh` (run with `bash`) or
+A script at `S/adapters/upcoming/<source>.sh` (run with `bash`) or
 `<source>.py` (run with `python3`), selected by `upcoming.source`.
 
 - Invoked as `<adapter> <project-dir>`, with the working directory set to
@@ -128,7 +130,7 @@ A script at `tile/adapters/upcoming/<source>.sh` (run with `bash`) or
 
 ### Reference-docs adapter
 
-A script at `tile/adapters/reference/<language>.sh` or `<language>.py`,
+A script at `S/adapters/reference/<language>.sh` or `<language>.py`,
 enabled by `languages`.
 
 - Invoked as `<adapter> <project-dir>`.
@@ -140,7 +142,7 @@ enabled by `languages`.
 
 ### PR check
 
-`tile/scripts/check-pr.sh`, run by the PR-check workflow with no agent.
+`S/scripts/check-pr.sh`, run by the PR-check workflow with no agent.
 It fails the PR when the PR adds no file under `site/content/changes/`, or
 when a summary is due and is not on the trunk, in the PR's diff, or in
 another open PR's diff. Failure messages name the missing file and the
@@ -148,7 +150,7 @@ skill that writes it.
 
 ### Build
 
-`tile/core/build.sh <project-dir> <out-dir>` assembles a Hugo source tree in
+`S/core/build.sh <project-dir> <out-dir>` assembles a Hugo source tree in
 `<out-dir>/src` (uncommitted) and renders the site into `<out-dir>/public`.
 
 ## Packaging
@@ -166,7 +168,7 @@ The project must use tessl in vendored mode (`"mode": "vendored"` in
 
 ```sh
 tessl install mhclg-aaai/proj-site
-bash .tessl/plugins/mhclg-aaai/proj-site/scripts/site-init.sh [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
+bash .tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/site-init.sh [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
 ```
 
 Then enable GitHub Pages for the repository with "GitHub Actions" as the

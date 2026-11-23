@@ -10,7 +10,7 @@ test_check_workflow_runs_check_on_pull_requests() {
   assert_contains "$f" "fetch-depth: 0"
   assert_contains "$f" "contents: read"
   assert_contains "$f" "pull-requests: read"
-  assert_contains "$f" 'bash "$SITE_TILE/scripts/check-pr.sh"'
+  assert_contains "$f" 'bash "$SITE_TILE/skills/site-setup/scripts/check-pr.sh"'
   assert_contains "$f" '--pr "${{ github.event.pull_request.number }}"'
   assert_contains "$f" 'GH_TOKEN: ${{ github.token }}'
   assert_not_contains "$f" "pages: write" "check workflow needs no write scopes"
@@ -23,7 +23,7 @@ test_pages_workflow_builds_and_deploys_on_trunk() {
   for p in "contents: read" "pull-requests: read" "issues: read" "pages: write" "id-token: write"; do
     assert_contains "$f" "$p"
   done
-  assert_contains "$f" 'bash "$SITE_TILE/core/build.sh"'
+  assert_contains "$f" 'bash "$SITE_TILE/skills/site-setup/core/build.sh"'
   assert_contains "$f" "actions/configure-pages"
   assert_contains "$f" "actions/upload-pages-artifact"
   assert_contains "$f" "actions/deploy-pages"
@@ -33,7 +33,7 @@ test_pages_workflow_builds_and_deploys_on_trunk() {
 test_templates_reference_scripts_that_exist_in_the_tile() {
   for f in "$W"/*.yml; do
     for rel in $(grep -o '\$SITE_TILE/[A-Za-z0-9_./-]*' "$f" | sed 's|\$SITE_TILE/||' | sort -u); do
-      assert_file "$TILE/$rel"
+      assert_file "$TILE_ROOT/$rel"
     done
     assert_contains "$(cat "$f")" "SITE_TILE: .tessl/plugins/mhclg-aaai/proj-site"
   done

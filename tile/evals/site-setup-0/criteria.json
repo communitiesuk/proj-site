@@ -1,0 +1,26 @@
+{
+  "context": "Tests whether the site-setup skill opts a repository in by running its opt-in script. task.md names proj-site but not the files, the script or the settings: every property below must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` on `dev`, tagged `fixture-base`, with origin `https://github.com/example/beacon.git`, `tessl.json` in vendored mode, and `src/beacon.py`. Inspect with `git show dev:<path>` and `git diff --name-status fixture-base dev`. Score from git state only.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "project.yaml from the repository's facts",
+      "max_score": 35,
+      "description": "`git show dev:site/project.yaml` has `repository: example/beacon`, `content_type: both`, `languages: [python]` and, nested under `upcoming:`, `source: github-issues`. FAILS IF: the file is missing or uncommitted, or any of the four values differs."
+    },
+    {
+      "name": "Both workflows, with the trunk substituted",
+      "max_score": 35,
+      "description": "`.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml` are committed on `dev`; the Pages workflow contains `branches: [dev]` and no `__TRUNK__`; both refer to the tile as `.tessl/plugins/mhclg-aaai/proj-site`. FAILS IF: either is missing, the trunk is wrong or unsubstituted, or the workflows were hand-written without the tile path."
+    },
+    {
+      "name": "Overview stub committed",
+      "max_score": 15,
+      "description": "`site/content/overview.md` is committed on `dev` with front matter holding `title`. FAILS IF: missing or uncommitted."
+    },
+    {
+      "name": "No hook unless asked",
+      "max_score": 15,
+      "description": "`.claude/settings.json` on `dev` does not register `hook-pr-create.sh` (the file may be absent). FAILS IF: the hook was added though the task did not ask for it."
+    }
+  ]
+}

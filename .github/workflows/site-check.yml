@@ -18,7 +18,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SITE_TILE: .tessl/plugins/mhclg-aaai/proj-site
         run: >-
-          bash "$SITE_TILE/scripts/check-pr.sh"
+          bash "$SITE_TILE/skills/site-setup/scripts/check-pr.sh"
           --base "origin/${{ github.base_ref }}"
           --head HEAD
           --pr "${{ github.event.pull_request.number }}"
