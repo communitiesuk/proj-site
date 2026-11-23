@@ -4,6 +4,9 @@
   "dependencies": {
     "mhclg-aaai/myelin": {
       "version": "0.5.2"
+    },
+    "mhclg-aaai/proj-site": {
+      "source": "file:tile"
     }
   },
   "agents": [

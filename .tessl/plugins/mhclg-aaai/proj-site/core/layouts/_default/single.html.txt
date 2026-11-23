@@ -1,0 +1,1 @@
+{{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Date }}{{ if not $.Date.IsZero }}<p><time>{{ $.Date.Format "2 January 2006" }}</time></p>{{ end }}{{ end }}{{ .Content }}{{ end }}

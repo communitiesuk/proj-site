@@ -1,0 +1,8 @@
+{{ define "main" }}<h1>{{ .Title }}</h1>{{ .Content }}
+{{ $timeline := hugo.Data.timeline }}
+{{ with $timeline }}<h2>Timeline</h2>
+<p class="muted">Explored, decided, built and shipped, read from the project's history. Highlighted items are new since the last summary.</p>
+<ul class="items">{{ range sort . "date" "desc" }}<li{{ if .recent }} class="recent"{{ end }}><time>{{ .date }}</time> <span class="tag">{{ .stage }}</span> {{ .title }} <span class="muted">{{ .path }}</span></li>{{ end }}</ul>{{ end }}
+<h2>Changes by week</h2>
+{{ range .Pages.GroupByParam "week" "desc" }}<h3>{{ .Key }}</h3>
+<ul class="items">{{ range .Pages.ByDate }}<li><a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.theme }} <span class="tag">{{ . }}</span>{{ end }}{{ with .Params.pr }} <a class="muted" href="https://github.com/{{ site.Params.repository }}/pull/{{ . }}">#{{ . }}</a>{{ end }}</li>{{ end }}</ul>{{ end }}{{ end }}
