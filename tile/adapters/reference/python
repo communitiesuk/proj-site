@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""Reference-docs adapter for Python projects.
+
+Usage: python <project-dir>
+
+Finds ``*.py`` files under the project directory (skipping hidden
+directories, ``site``, ``tests``, ``test_*.py``, ``venv``, ``.venv``,
+``node_modules``, ``build``, ``dist`` and ``__pycache__``), parses them with
+``ast`` (project code is never imported or executed) and prints a JSON array
+of pages ``{"path", "title", "content"}`` sorted by path. A module yields a
+page when it has a module docstring or a public top-level function or class.
+Prints ``[]`` when there is no Python source. Files with syntax errors are
+skipped with a warning on stderr.
+"""
+import sys
+
+
+def collect_files(root):
+    """Return sorted module file paths under ``root`` that should be documented."""
+    raise NotImplementedError
+
+
+def render_module(source):
+    """Return Markdown for ``source`` text, or None if it has nothing public.
+
+    Raises SyntaxError if the source cannot be parsed.
+    """
+    raise NotImplementedError
+
+
+def main(argv):
+    """Entry point: print the JSON page array for ``argv[1]``; return exit code."""
+    raise NotImplementedError
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
