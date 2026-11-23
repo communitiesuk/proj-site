@@ -1,0 +1,4 @@
+{{ define "main" }}<h1>{{ .Title }}</h1>{{ .Content }}
+{{ $items := hugo.Data.upcoming }}
+{{ if $items }}<ul class="items">{{ range sort $items "theme" }}<li>{{ .title }} {{ with .theme }}<span class="tag">{{ . }}</span>{{ end }} <span class="muted">{{ .ref }}</span></li>{{ end }}</ul>
+{{ else }}<p class="muted">Nothing queued.</p>{{ end }}{{ end }}
