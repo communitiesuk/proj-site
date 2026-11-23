@@ -11,7 +11,8 @@
 # Check 1 (change entry): `git diff <base>...<head>` must ADD (status A) at
 #   least one file under site/content/changes/. Otherwise the failure message
 #   names site/content/changes/<YYYY-MM-DD>-<branch-slug>.md and the
-#   `site-writing` skill.
+#   `site-writing` skill. The branch is $GITHUB_HEAD_REF when set (in Actions
+#   the checkout is a detached merge commit), else <head>'s branch name.
 #
 # Check 2 (summary due): the due summary is
 #   site/content/summaries/<%G-W%V>.md for the ISO week containing the most
@@ -107,7 +108,7 @@ fail_msg() { failures="$failures$1"$'\n'; }
 # Check 1: the PR adds a change entry.
 added=$(git diff --name-status --diff-filter=A "$base...$head") || exit 2
 if ! printf '%s\n' "$added" | awk -F'\t' '$1=="A" && $2 ~ /^site\/content\/changes\//{f=1} END{exit !f}'; then
-  branch=$(git rev-parse --abbrev-ref "$head" 2>/dev/null || echo "$head")
+  branch=${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref "$head" 2>/dev/null || echo "$head")}
   slug=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n-' '-')
   fail_msg "FAIL: this PR adds no file under site/content/changes/. Add site/content/changes/${now:0:10}-$slug.md (use the site-writing skill)."
 fi
