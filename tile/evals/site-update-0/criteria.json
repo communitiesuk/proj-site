@@ -1,0 +1,26 @@
+{
+  "context": "Tests whether the site-update skill aligns hand-written docs with a code change that removes a feature. task.md says nothing about docs: every property below must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` with tags `fixture-base-dev` and `fixture-base-branch` and branch `remove-csv-export` checked out; the branch removes `export_csv()` from `src/lantern.py`, but `site/content/overview.md` and `site/content/docs/exporting.md` still describe it. Inspect with `git show remove-csv-export:<path>` and `git diff fixture-base-branch remove-csv-export`. Score from git state only.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "The long-form doc no longer describes CSV export",
+      "max_score": 35,
+      "description": "In `git show remove-csv-export:site/content/docs/exporting.md` (if the file was renamed, its successor under `site/content/docs/`), no passage tells the reader they can export to CSV: neither `export_csv` nor a CSV export instruction appears, except in a sentence saying the feature was removed. The change is committed on `remove-csv-export`. FAILS IF: the passage is unchanged, the change is uncommitted, or the file still instructs the reader to call `export_csv`."
+    },
+    {
+      "name": "The overview no longer describes CSV export",
+      "max_score": 30,
+      "description": "`git show remove-csv-export:site/content/overview.md` no longer tells the reader to use `export_csv()` or download CSV, except in a sentence saying the feature was removed. FAILS IF: the overview is unchanged or still offers CSV export."
+    },
+    {
+      "name": "Unrelated passages are kept",
+      "max_score": 25,
+      "description": "Both files still exist on `remove-csv-export` (the long-form doc may be renamed, not deleted outright), and both still describe `search()`. FAILS IF: either file was deleted wholesale, or the search passages were removed."
+    },
+    {
+      "name": "Code untouched beyond the fixture",
+      "max_score": 10,
+      "description": "`git diff fixture-base-branch remove-csv-export -- src/` prints nothing or only docstring changes; `export_csv` was not re-added. FAILS IF: the agent changed behaviour in `src/` or restored the removed feature."
+    }
+  ]
+}
