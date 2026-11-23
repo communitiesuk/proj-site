@@ -26,6 +26,9 @@ test_init_creates_project_and_workflows() {
   assert_not_contains "$pages" "__TRUNK__"
   assert_no_path .claude/settings.json
   assert_contains "$out" "Pages"
+  for f in site/project.yaml site/content/overview.md .github/workflows/site-check.yml .github/workflows/site-pages.yml; do
+    assert_contains "$out" "  $f"
+  done
 }
 
 test_init_detects_python_and_trunk() {
