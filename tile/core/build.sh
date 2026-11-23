@@ -10,7 +10,8 @@
 # The source tree:
 #   src/hugo.toml               generated: title from `name`, baseURL from
 #                               $SITE_BASE_URL (default "/"), menu of enabled sections
-#   src/layouts/                copied from tile/core/layouts
+#   src/layouts/                copied from tile/core/layouts, each `*.html.txt`
+#                               renamed to `*.html` (the tessl registry drops .html)
 #   src/content/_index.md       from site/content/overview.md (title "Overview")
 #   src/content/changes/        site/content/changes/*.md, each with `week`
 #                               (%G-W%V of its date) and, unless $SITE_OFFLINE=1,
@@ -22,6 +23,10 @@
 #   src/data/timeline.json      from timeline.sh, `recent` since the latest summary's
 #                               `period_end` (all recent when there is no summary)
 #   src/data/upcoming.json      from the `upcoming.source` adapter
+#
+# Adapters are resolved as <root>/<kind>/<name>.sh (run with bash), <name>.py
+# (run with python3), or an executable <name>, in that order; the registry
+# drops extensionless files and the executable bit.
 #
 # Every section dir gets an _index.md if none was supplied. Environment:
 #   SITE_GH       gh command (default gh); SITE_OFFLINE=1 skips PR lookups
@@ -55,6 +60,16 @@ esac
 src="$out/src"; content="$src/content"; sitec="$project/site/content"
 rm -rf "$src"; mkdir -p "$content" "$src/data"
 cp -R "$here/layouts" "$src/layouts"
+find "$src/layouts" -name '*.html.txt' | while IFS= read -r f; do mv "$f" "${f%.txt}"; done
+
+# run_adapter <kind> <name>: run an adapter in the project dir; 127 if absent.
+run_adapter() {
+  local base="$ADAPTERS/$1/$2"
+  if [ -f "$base.sh" ]; then (cd "$project" && bash "$base.sh" "$project")
+  elif [ -f "$base.py" ]; then (cd "$project" && python3 "$base.py" "$project")
+  elif [ -x "$base" ]; then (cd "$project" && "$base" "$project")
+  else return 127; fi
+}
 
 section_index() { # dir title
   [ -f "$1/_index.md" ] || printf -- '---\ntitle: %s\n---\n' "$2" > "$1/_index.md"
@@ -97,16 +112,15 @@ done
 section_index "$content/summaries" Summaries
 
 # Timeline.
-"$here/timeline.sh" "$project" "$latest_end" > "$src/data/timeline.json" \
+bash "$here/timeline.sh" "$project" "$latest_end" > "$src/data/timeline.json" \
   || { echo "build.sh: timeline failed" >&2; exit 1; }
 
 # Upcoming.
 mkdir -p "$content/upcoming"; section_index "$content/upcoming" Upcoming
 if [ -n "$upsrc" ]; then
-  adapter="$ADAPTERS/upcoming/$upsrc"
-  [ -x "$adapter" ] || { echo "build.sh: upcoming adapter not found: $upsrc" >&2; exit 1; }
-  (cd "$project" && "$adapter" "$project") > "$src/data/upcoming.json" \
-    || { echo "build.sh: upcoming adapter '$upsrc' failed" >&2; exit 1; }
+  rc=0; run_adapter upcoming "$upsrc" > "$src/data/upcoming.json" || rc=$?
+  [ "$rc" -ne 127 ] || { echo "build.sh: upcoming adapter not found: $upsrc" >&2; exit 1; }
+  [ "$rc" -eq 0 ] || { echo "build.sh: upcoming adapter '$upsrc' failed" >&2; exit 1; }
 else
   echo '[]' > "$src/data/upcoming.json"
 fi
@@ -123,10 +137,9 @@ fi
 if [ "$ctype" != knowledge ]; then
   mkdir -p "$content/reference"
   for lang in $langs; do
-    adapter="$ADAPTERS/reference/$lang"
-    [ -x "$adapter" ] || { echo "build.sh: reference adapter not found: $lang" >&2; exit 1; }
-    pages=$(cd "$project" && "$adapter" "$project") \
-      || { echo "build.sh: reference adapter '$lang' failed" >&2; exit 1; }
+    rc=0; pages=$(run_adapter reference "$lang") || rc=$?
+    [ "$rc" -ne 127 ] || { echo "build.sh: reference adapter not found: $lang" >&2; exit 1; }
+    [ "$rc" -eq 0 ] || { echo "build.sh: reference adapter '$lang' failed" >&2; exit 1; }
     printf '%s' "$pages" | jq -c '.[]' | while IFS= read -r page; do
       p=$(printf '%s' "$page" | jq -r .path)
       case $p in /*|*..*) echo "build.sh: reference adapter '$lang' gave unsafe path $p" >&2; exit 1;; esac

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.site/hook-pr-create.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.tessl/plugins/mhclg-aaai/proj-site/scripts/hook-pr-create.sh"
           }
         ]
       }

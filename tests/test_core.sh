@@ -46,11 +46,12 @@ YAML
     > "$r/site/content/summaries/2026-W01.md"
   commit_at "$r" 2026-01-09T10:00:00Z -m "Opt in"
   mkdir -p "$TMP/adapters/upcoming" "$TMP/adapters/reference"
-  printf '#!/bin/sh\necho %s\n' "'[{\"title\":\"UPCOMING-ITEM\",\"ref\":\"#7\",\"state\":\"open\",\"theme\":\"Core\"}]'" \
-    > "$TMP/adapters/upcoming/fake"
-  printf '#!/bin/sh\necho %s\n' "'[{\"path\":\"pkg/mod.md\",\"title\":\"pkg.mod\",\"content\":\"REFERENCE-TEXT\"}]'" \
-    > "$TMP/adapters/reference/fake"
-  chmod +x "$TMP/adapters/upcoming/fake" "$TMP/adapters/reference/fake"
+  # Fakes as the registry delivers them: with an extension, no executable bit.
+  printf 'echo %s\n' "'[{\"title\":\"UPCOMING-ITEM\",\"ref\":\"#7\",\"state\":\"open\",\"theme\":\"Core\"}]'" \
+    > "$TMP/adapters/upcoming/fake.sh"
+  printf 'import json\nprint(json.dumps([{"path": "pkg/mod.md", "title": "pkg.mod", "content": "REFERENCE-TEXT"}]))\n' \
+    > "$TMP/adapters/reference/fake.py"
+  chmod -x "$TMP/adapters/upcoming/fake.sh" "$TMP/adapters/reference/fake.py"
   export SITE_ADAPTERS="$TMP/adapters" SITE_OFFLINE=1
 }
 
@@ -177,7 +178,7 @@ test_build_rejects_bad_project() {
 
 test_build_names_failing_adapter() {
   make_project "$TMP/p" knowledge
-  printf '#!/bin/sh\necho boom >&2; exit 3\n' > "$TMP/adapters/upcoming/fake"
+  printf 'echo boom >&2; exit 3\n' > "$TMP/adapters/upcoming/fake.sh"
   set +e; build "$TMP/p" "$TMP/out" --no-render 2>err; rc=$?; set -e
   [ "$rc" -ne 0 ] || fail "expected failure"
   assert_contains "$(cat err)" "upcoming adapter"

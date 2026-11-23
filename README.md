@@ -116,8 +116,8 @@ where they publicised the project (show and tells, talks). No secrets.
 
 ### Upcoming-work adapter
 
-An executable at `tile/adapters/upcoming/<source>`, selected by
-`upcoming.source`.
+A script at `tile/adapters/upcoming/<source>.sh` (run with `bash`) or
+`<source>.py` (run with `python3`), selected by `upcoming.source`.
 
 - Invoked as `<adapter> <project-dir>`, with the working directory set to
   the project.
@@ -128,8 +128,8 @@ An executable at `tile/adapters/upcoming/<source>`, selected by
 
 ### Reference-docs adapter
 
-An executable at `tile/adapters/reference/<language>`, enabled by
-`languages`.
+A script at `tile/adapters/reference/<language>.sh` or `<language>.py`,
+enabled by `languages`.
 
 - Invoked as `<adapter> <project-dir>`.
 - Writes to stdout a JSON array of pages:
@@ -150,6 +150,27 @@ skill that writes it.
 
 `tile/core/build.sh <project-dir> <out-dir>` assembles a Hugo source tree in
 `<out-dir>/src` (uncommitted) and renders the site into `<out-dir>/public`.
+
+## Packaging
+
+The tessl registry delivers only files ending in `.md`, `.txt`, `.json`,
+`.yml`, `.yaml`, `.toml`, `.sh`, `.py`, `.js`, `.ts`, `.tsx` or `.jsx`, and drops
+the executable bit. So every script is run as `bash <path>` or
+`python3 <path>`, and Hugo layouts ship as `*.html.txt`, renamed by the build.
+
+## Opting in
+
+The project must use tessl in vendored mode (`"mode": "vendored"` in
+`tessl.json`), so the tile is committed under
+`.tessl/plugins/mhclg-aaai/proj-site/` where the workflows can run it.
+
+```sh
+tessl install mhclg-aaai/proj-site
+bash .tessl/plugins/mhclg-aaai/proj-site/scripts/site-init.sh [--content-type knowledge|code|both] [--trunk <branch>] [--with-claude-hook]
+```
+
+Then enable GitHub Pages for the repository with "GitHub Actions" as the
+source, and raise the opt-in PR with its own per-PR entry.
 
 ## Development
 
