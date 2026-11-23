@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} · {{ site.Title }}{{ end }}</title>
+<style>
+:root { --bg:#fff; --fg:#1b1b1b; --muted:#5f6368; --line:#e3e3e3; --accent:#1d70b8; --recent:#fff7d6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#16181c; --fg:#e8e8e8; --muted:#a0a4ab; --line:#30343a; --accent:#6cb4ff; --recent:#3a3320; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { border-bottom:1px solid var(--line); }
+.wrap { max-width:52rem; margin:0 auto; padding:0 16px; }
+header .wrap { display:flex; flex-wrap:wrap; gap:.25rem 1.25rem; align-items:baseline; padding-top:1rem; padding-bottom:1rem; }
+header .site { font-weight:700; color:var(--fg); text-decoration:none; margin-right:auto; }
+nav a { color:var(--accent); text-decoration:none; } nav a.active { color:var(--fg); font-weight:600; }
+main { padding:1.5rem 0 3rem; }
+a { color:var(--accent); }
+h1 { font-size:1.9rem; line-height:1.2; margin:.5rem 0 1rem; }
+h2 { font-size:1.3rem; margin:2rem 0 .5rem; }
+.muted, time { color:var(--muted); font-size:.9rem; }
+ul.items { list-style:none; padding:0; margin:0; }
+ul.items li { padding:.6rem 0; border-bottom:1px solid var(--line); }
+.tag { display:inline-block; font-size:.75rem; padding:0 .5rem; border:1px solid var(--line); border-radius:1rem; color:var(--muted); margin-left:.25rem; }
+li.recent { background:var(--recent); padding-left:.5rem; padding-right:.5rem; }
+pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.9em; }
+pre { overflow-x:auto; padding:.75rem; border:1px solid var(--line); }
+footer { border-top:1px solid var(--line); padding:1rem 0 2rem; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="site" href="{{ "/" | relURL }}">{{ site.Title }}</a>
+  <nav>{{ $current := . }}{{ range site.Menus.main }}<a href="{{ .URL }}"{{ if $current.IsMenuCurrent "main" . }} class="active"{{ end }}>{{ .Name }}</a> {{ end }}</nav>
+</div></header>
+<main><div class="wrap">{{ block "main" . }}{{ end }}</div></main>
+<footer><div class="wrap muted">{{ with site.Params.repository }}Source: <a href="https://github.com/{{ . }}">{{ . }}</a>{{ end }}</div></footer>
+</body>
+</html>
