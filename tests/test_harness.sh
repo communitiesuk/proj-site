@@ -7,3 +7,11 @@ test_make_repo_has_identity() {
   make_repo "$TMP/r"
   assert_eq "Test Author" "$(git -C "$TMP/r" config user.name)"
 }
+test_failed_assertion_fails_the_test() {
+  # Run the harness on a file whose only test fails mid-way; it must report FAIL.
+  d=$(mktemp -d); cp "$REPO_ROOT/tests/run.sh" "$REPO_ROOT/tests/lib.sh" "$d/"
+  printf 'test_x() {\n  assert_eq a b\n  true\n}\n' > "$d/test_x.sh"
+  set +e; out=$(bash "$d/run.sh" 2>&1); rc=$?; set -e
+  rm -rf "$d"
+  assert_eq 1 "$rc"; assert_contains "$out" "FAIL test_x.sh test_x"
+}
