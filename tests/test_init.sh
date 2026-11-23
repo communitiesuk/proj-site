@@ -80,3 +80,9 @@ test_init_warns_without_vendored_mode_and_requires_repo_root() {
   set +e; init 2>/dev/null; rc=$?; set -e
   assert_eq 2 "$rc"
 }
+
+test_init_falls_back_to_the_current_branch_in_a_new_repo() {
+  mkdir "$TMP/n"; cd "$TMP/n"; git init -q -b trunkish
+  init >/dev/null
+  assert_contains "$(cat .github/workflows/site-pages.yml)" "branches: [trunkish]"
+}
