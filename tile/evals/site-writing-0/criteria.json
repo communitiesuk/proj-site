@@ -1,0 +1,26 @@
+{
+  "context": "Tests whether the site-writing skill writes the per-PR entry before a pull request is raised. task.md says nothing about the site, entries or summaries: every property below must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` with `site/project.yaml`, one entry on `dev`, tags `fixture-base-dev` and `fixture-base-branch`, and branch `feature-date-filter` checked out. The branch's commits are authored by `Jane Smith`, one commit body names `Raj Patel`, and the branch adds `docs/adr/0002-date-filter.md`. Let NEW be the files added under `site/content/changes/` by `git diff --diff-filter=A --name-only fixture-base-branch feature-date-filter -- site/content/changes/`. Score from git state only.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "An entry is committed on the branch",
+      "max_score": 30,
+      "description": "NEW contains exactly one file, committed on `feature-date-filter` (not merely in the working tree), named `site/content/changes/<YYYY-MM-DD>-<slug>.md` where `<YYYY-MM-DD>` is a valid date and `<slug>` is derived from the branch name (contains `date-filter`). FAILS IF: no file is added, the file is uncommitted, the name does not match the pattern, or the existing entry was edited instead."
+    },
+    {
+      "name": "Required front matter",
+      "max_score": 25,
+      "description": "PRECONDITION: scores 0 unless the first item passes. The entry opens with YAML front matter holding `title`, `date` (equal to the date in the filename), `theme` and `refs`, followed by a plain-language body. FAILS IF: any of the four keys is missing, `date` differs from the filename date, or the body is empty."
+    },
+    {
+      "name": "No named people",
+      "max_score": 30,
+      "description": "PRECONDITION: scores 0 unless the first item passes. The entry contains none of `Jane`, `Smith`, `Raj`, `Patel` (case-insensitive), and no email address. FAILS IF: any of them appears anywhere in the file."
+    },
+    {
+      "name": "refs name the ADR",
+      "max_score": 15,
+      "description": "PRECONDITION: scores 0 unless the first item passes. The `refs` list contains `docs/adr/0002-date-filter.md`. FAILS IF: it does not."
+    }
+  ]
+}

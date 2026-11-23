@@ -1,0 +1,26 @@
+{
+  "context": "Tests whether the site-writing skill writes the weekly summary when one is due. task.md says nothing about summaries: every property below must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` with `site/project.yaml`, one entry on `dev` and NO file under `site/content/summaries/`, so a summary is due whenever the agent runs. Let DUE be the ISO week (`%G-W%V`, UTC) containing the most recent Thursday 00:00 UTC at or before the time of the agent's commit (compute from the committer date of the commit that adds the summary; a result for the week before is accepted only if that commit was made before Thursday 00:00 UTC of the current week). Score from git state only.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "The due summary is committed",
+      "max_score": 40,
+      "description": "`git diff --diff-filter=A --name-only fixture-base-branch feature-date-filter -- site/content/summaries/` lists exactly `site/content/summaries/<DUE>.md`, committed on `feature-date-filter`. FAILS IF: no summary is added, it is uncommitted, or it is named for a week other than DUE (for example the calendar week of the run day, or a `%Y` instead of `%G` year)."
+    },
+    {
+      "name": "Summary front matter and sections",
+      "max_score": 30,
+      "description": "PRECONDITION: scores 0 unless the first item passes. The summary's front matter holds `title`, `period_start`, `period_end` and `counts`, and its body has a `Completed` section and an `In flight / queued` section. FAILS IF: any key or either section is missing."
+    },
+    {
+      "name": "No named people in the summary",
+      "max_score": 20,
+      "description": "PRECONDITION: scores 0 unless the first item passes. The summary contains none of `Jane`, `Smith`, `Raj`, `Patel` (case-insensitive) and no email address. FAILS IF: any appears."
+    },
+    {
+      "name": "The per-PR entry is also written",
+      "max_score": 10,
+      "description": "The branch also adds one file under `site/content/changes/`. FAILS IF: it does not."
+    }
+  ]
+}
