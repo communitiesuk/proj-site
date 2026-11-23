@@ -1,6 +1,6 @@
 ---
 title: Build the automatically maintained project site
-status: draft
+status: in-progress
 adr: 0001
 date: 2026-11-23
 deferred_reason: null
@@ -211,4 +211,10 @@ Implements [ADR 0001](../docs/adr/0001-project-site.md).
 
 ## Progress notes
 
-None yet.
+- 2026-11-23, step 1: **Hugo confirmed** (v0.170.1). A scratch site
+  rendered a hand-written overview page, generated reference docs, and
+  per-PR entries grouped by ISO week. Hugo templates cannot compute an
+  ISO week, so the core writes a `week` (`%G-W%V`) front-matter field
+  into each generated entry and layouts group with `GroupByParam
+  "week"`. Hugo ships as a single release binary, so CI installs it by
+  download; the Pages deploy itself is verified in step 13.
