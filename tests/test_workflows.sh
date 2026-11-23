@@ -1,11 +1,12 @@
 # Structural tests for the workflow templates (tile/templates/workflows/) and
 # this repository's own test workflow. Templates refer to the installed tile as
 # $SITE_TILE (.tessl/plugins/mhclg-aaai/proj-site) and to the trunk as __TRUNK__.
+# They ship as *.yml.txt: the registry install dropped *.yml files.
 
 W="$TILE/templates/workflows"
 
 test_check_workflow_runs_check_on_pull_requests() {
-  f=$(cat "$W/site-check.yml")
+  f=$(cat "$W/site-check.yml.txt")
   assert_contains "$f" "pull_request:"
   assert_contains "$f" "fetch-depth: 0"
   assert_contains "$f" "contents: read"
@@ -17,7 +18,7 @@ test_check_workflow_runs_check_on_pull_requests() {
 }
 
 test_pages_workflow_builds_and_deploys_on_trunk() {
-  f=$(cat "$W/site-pages.yml")
+  f=$(cat "$W/site-pages.yml.txt")
   assert_contains "$f" "branches: [__TRUNK__]"
   assert_contains "$f" "fetch-depth: 0"
   for p in "contents: read" "pull-requests: read" "issues: read" "pages: write" "id-token: write"; do
@@ -31,7 +32,7 @@ test_pages_workflow_builds_and_deploys_on_trunk() {
 }
 
 test_templates_reference_scripts_that_exist_in_the_tile() {
-  for f in "$W"/*.yml; do
+  for f in "$W"/*.yml.txt; do
     for rel in $(grep -o '\$SITE_TILE/[A-Za-z0-9_./-]*' "$f" | sed 's|\$SITE_TILE/||' | sort -u); do
       assert_file "$TILE_ROOT/$rel"
     done
@@ -40,7 +41,7 @@ test_templates_reference_scripts_that_exist_in_the_tile() {
 }
 
 test_templates_have_no_tabs_and_pin_action_versions() {
-  for f in "$W"/*.yml "$REPO_ROOT/.github/workflows/test.yml"; do
+  for f in "$W"/*.yml.txt "$REPO_ROOT/.github/workflows/test.yml"; do
     ! grep -q "$(printf '\t')" "$f" || fail "tab in $f"
     ! grep -E 'uses: [^@]+$' "$f" || fail "unpinned action in $f"
   done
