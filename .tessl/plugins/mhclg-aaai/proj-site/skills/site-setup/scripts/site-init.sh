@@ -15,7 +15,7 @@
 #                                   languages ([python] when it has *.py, else []),
 #                                   upcoming.source github-issues
 #   site/content/overview.md        a stub overview to edit
-#   .github/workflows/site-check.yml   from the tile's templates
+#   .github/workflows/site-check.yml   from the tile's templates (shipped as *.yml.txt)
 #   .github/workflows/site-pages.yml   with __TRUNK__ replaced by the trunk
 # With --with-claude-hook, merges the tile's claude-hook.json into
 # .claude/settings.json (created if absent), adding the hook only if that
@@ -93,8 +93,8 @@ title: Overview
 What $name is, who it is for, and what it produces. Edit this page.
 MD
 
-write_new .github/workflows/site-check.yml < "$tile/templates/workflows/site-check.yml"
-write_new .github/workflows/site-pages.yml < <(sed "s/__TRUNK__/$trunk/g" "$tile/templates/workflows/site-pages.yml")
+write_new .github/workflows/site-check.yml < "$tile/templates/workflows/site-check.yml.txt"
+write_new .github/workflows/site-pages.yml < <(sed "s/__TRUNK__/$trunk/g" "$tile/templates/workflows/site-pages.yml.txt")
 
 if [ "$hook" = 1 ]; then
   s=.claude/settings.json
