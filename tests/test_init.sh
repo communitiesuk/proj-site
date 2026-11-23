@@ -20,7 +20,7 @@ test_init_creates_project_and_workflows() {
   assert_eq "knowledge" "$(. "$TILE/core/lib.sh"; yaml_get site/project.yaml content_type)"
   assert_eq "github-issues" "$(. "$TILE/core/lib.sh"; yaml_get site/project.yaml upcoming.source)"
   assert_file site/content/overview.md
-  assert_eq "$(cat "$TILE/templates/workflows/site-check.yml")" "$(cat .github/workflows/site-check.yml)"
+  assert_eq "$(cat "$TILE/templates/workflows/site-check.yml.txt")" "$(cat .github/workflows/site-check.yml)"
   pages=$(cat .github/workflows/site-pages.yml)
   assert_contains "$pages" "branches: [dev]"
   assert_not_contains "$pages" "__TRUNK__"

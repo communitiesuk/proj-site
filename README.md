@@ -158,7 +158,9 @@ skill that writes it.
 The tessl registry delivers only files ending in `.md`, `.txt`, `.json`,
 `.yml`, `.yaml`, `.toml`, `.sh`, `.py`, `.js`, `.ts`, `.tsx` or `.jsx`, and drops
 the executable bit. So every script is run as `bash <path>` or
-`python3 <path>`, and Hugo layouts ship as `*.html.txt`, renamed by the build.
+`python3 <path>`, Hugo layouts ship as `*.html.txt`, renamed by the build, and
+the workflow templates ship as `*.yml.txt`, renamed by `site-init.sh`: a
+registry install of 0.1.0 delivered no `*.yml` file.
 
 ## Opting in
 

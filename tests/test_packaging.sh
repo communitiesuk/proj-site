@@ -32,3 +32,9 @@ test_everything_shipped_is_inside_a_skill() {
   stray=$(cd "$TILE_ROOT" && find . -type f ! -path './skills/*' ! -path './.tessl-plugin/*' ! -path './evals/*' | sort)
   assert_eq "" "$stray" "files outside skills/ would not be published"
 }
+
+test_no_yaml_files_in_the_tile() {
+  # Observed: a registry install of 0.1.0 dropped both *.yml workflow templates.
+  found=$(cd "$TILE_ROOT" && find . -type f \( -name '*.yml' -o -name '*.yaml' \) ! -path './evals/*')
+  assert_eq "" "$found"
+}
