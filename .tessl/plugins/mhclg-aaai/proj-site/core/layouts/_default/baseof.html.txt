@@ -30,7 +30,7 @@ footer { border-top:1px solid var(--line); padding:1rem 0 2rem; }
 </head>
 <body>
 <header><div class="wrap">
-  <a class="site" href="{{ "/" | relURL }}">{{ site.Title }}</a>
+  <a class="site" href="{{ site.Home.RelPermalink }}">{{ site.Title }}</a>
   <nav>{{ $current := . }}{{ range site.Menus.main }}<a href="{{ .URL }}"{{ if $current.IsMenuCurrent "main" . }} class="active"{{ end }}>{{ .Name }}</a> {{ end }}</nav>
 </div></header>
 <main><div class="wrap">{{ block "main" . }}{{ end }}</div></main>

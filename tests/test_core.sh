@@ -199,3 +199,12 @@ test_build_renders_site_with_hugo() {
   assert_contains "$(cat "$p/docs/guide/index.html")" "GUIDE-TEXT"
   assert_contains "$(cat "$p/reference/pkg/mod/index.html")" "REFERENCE-TEXT"
 }
+
+test_rendered_links_respect_a_base_path() {
+  command -v "${HUGO:-hugo}" >/dev/null || { echo "hugo not installed"; return 1; }
+  make_project "$TMP/p" knowledge
+  SITE_BASE_URL="https://example.github.io/sub/" build "$TMP/p" "$TMP/out"
+  home=$(cat "$TMP/out/public/index.html")
+  assert_contains "$home" 'class="site" href="/sub/"'
+  ! grep -q 'href="/"' "$TMP/out/public/index.html" || fail "a link ignores the base path"
+}
