@@ -124,3 +124,14 @@ test_usage_error() {
   rc=0; "$CHECK" --now 2026-01-01T00:00:00Z >/dev/null 2>&1 || rc=$?
   assert_eq 2 "$rc"
 }
+
+test_slug_uses_github_head_ref_on_a_detached_checkout() {
+  fixture 2026-W01
+  git -C "$TMP/r" rm -q site/content/changes/2026-01-02-feat-x.md
+  commit_at "$TMP/r" 2026-01-03T00:00:00Z -m rm
+  git -C "$TMP/r" checkout -q --detach
+  rc=0
+  out=$(cd "$TMP/r" && GITHUB_HEAD_REF="Feature/Date_Filter" bash "$CHECK" --base dev --now 2026-01-07T12:00:00Z 2>&1) || rc=$?
+  assert_eq 1 "$rc"
+  assert_contains "$out" "site/content/changes/2026-01-07-feature-date-filter.md"
+}
