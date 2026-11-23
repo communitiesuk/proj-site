@@ -19,7 +19,7 @@ tile `mhclg-aaai/proj-site`:
 
 | Path | What it is |
 | --- | --- |
-| `tile/core/` | The build: POSIX shell with `git`, `gh` and `jq`, plus Hugo. |
+| `tile/core/` | The build: bash 4+ with `git`, `gh` and `jq`, plus Hugo. |
 | `tile/adapters/upcoming/` | Upcoming-work adapters (`github-issues`, `stub`). |
 | `tile/adapters/reference/` | Reference-docs adapters, one per language (`python`). |
 | `tile/scripts/` | The PR check, the opt-in script and the Claude Code hook. |
