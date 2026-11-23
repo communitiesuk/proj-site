@@ -6,7 +6,8 @@
 # message and returns 1, which fails that test.
 
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-TILE="$REPO_ROOT/tile"
+TILE_ROOT="$REPO_ROOT/tile"                 # the tessl plugin
+TILE="$TILE_ROOT/skills/site-setup"         # the runtime: core, adapters, scripts, templates
 
 fail() { printf '    %s\n' "$*" >&2; return 1; }
 

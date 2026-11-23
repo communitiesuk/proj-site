@@ -136,5 +136,5 @@ test_template_registers_hook() {
   assert_eq Bash "$(jq -r '.hooks.PreToolUse[0].matcher' "$f")"
   assert_eq command "$(jq -r '.hooks.PreToolUse[0].hooks[0].type' "$f")"
   assert_contains "$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$f")" \
-    '"$CLAUDE_PROJECT_DIR"/.tessl/plugins/mhclg-aaai/proj-site/scripts/hook-pr-create.sh'
+    '"$CLAUDE_PROJECT_DIR"/.tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/hook-pr-create.sh'
 }
