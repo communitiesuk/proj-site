@@ -11,7 +11,7 @@ The harness states this skill's base directory when it loads the skill. Call it 
 
 ## Opting a project in
 
-1. **Check the prerequisites.** The repository root is the working directory; `tessl.json` has `"mode": "vendored"` (the workflows run the tile from `.tessl/plugins/mhclg-aaai/proj-site/`, so it must be committed); the tile is installed (`tessl install mhclg-aaai/proj-site`). If the mode is not vendored, say so and ask before changing it.
+1. **Check the prerequisites.** The repository root is the working directory; the tile is installed (`tessl install mhclg-aaai/proj-site`), so `tessl.json` lists it. Any tessl mode works: the workflows install the tile themselves, so leave the project's mode as it is.
 2. **Run the opt-in script.** Do not hand-write the files it creates:
 
    ```sh

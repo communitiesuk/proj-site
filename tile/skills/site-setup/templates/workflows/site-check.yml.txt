@@ -1,5 +1,6 @@
 # Installed by proj-site's site-init.sh. Fails a PR that adds no per-PR entry,
 # or that leaves a due weekly summary missing (see the site-writing skill).
+# Installs the tile from the project's tessl.json, in any tessl mode.
 name: Site check
 on:
   pull_request:
@@ -9,14 +10,23 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      SITE_TILE: .tessl/plugins/mhclg-aaai/proj-site
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Install the proj-site tile
+        run: npx -y @tessl/cli@0.123.0 install --yes --accept-warnings
+      - name: Check the tile was installed
+        run: |
+          [ -f "$SITE_TILE/skills/site-setup/scripts/check-pr.sh" ] || {
+            echo "::error::The proj-site tile is not at $SITE_TILE. Check that tessl.json lists mhclg-aaai/proj-site and that tessl install could fetch it."
+            exit 1
+          }
       - name: Check per-PR entry and weekly summary
         env:
           GH_TOKEN: ${{ github.token }}
-          SITE_TILE: .tessl/plugins/mhclg-aaai/proj-site
         run: >-
           bash "$SITE_TILE/skills/site-setup/scripts/check-pr.sh"
           --base "origin/${{ github.base_ref }}"

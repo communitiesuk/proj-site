@@ -1,6 +1,6 @@
 ---
 title: Distribute the proj-site tile to CI in any tessl mode
-status: draft
+status: in-progress
 adr: 0002
 date: 2026-11-25
 deferred_reason: null
@@ -124,3 +124,14 @@ published tile and the pilot, so their results and the plan's deletion (step
   publishes (plan 0001 step 13).
 
 ## Progress notes
+
+- 2026-11-25, steps 1-4 on branch `chore-tile-any-tessl-mode`: the
+  templates install the tile with `npx -y @tessl/cli@0.123.0` and check it
+  arrived; `site-init.sh` no longer warns about the mode; the skill, README
+  and opting-in guide describe any mode; this repository's workflows are
+  regenerated; the manifest is public at 0.2.0. Audit of all 39 files under
+  `tile/` before making it public: no real names or handles, no internal
+  hostnames or URLs, no secrets; the only email addresses are fictional
+  `example.invalid` fixture identities, and the only URLs are GitHub release
+  downloads, the fictional `example/beacon` remote and template placeholders.
+  No fixes were needed.

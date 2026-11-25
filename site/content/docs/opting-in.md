@@ -4,9 +4,9 @@ weight: 1
 ---
 ## Requirements
 
-- A myelin project on GitHub that uses tessl in vendored mode
-  (`"mode": "vendored"` in `tessl.json`), so the tile is committed where the
-  workflows can run it.
+- A myelin project on GitHub that uses tessl, in any mode. The site's
+  workflows install the tile from the project's `tessl.json` on each run, so
+  they need network access to the tessl registry.
 - Bash 4 or later, `git`, `gh` and `jq`. The Pages workflow installs Hugo
   itself.
 

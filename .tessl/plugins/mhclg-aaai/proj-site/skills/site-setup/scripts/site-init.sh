@@ -23,8 +23,8 @@
 #
 # Trunk: --trunk, else origin/HEAD's target, else the first existing of dev,
 # main, master, else the current branch (a repository with no commits yet). A second run makes no changes. Prints what it created and the
-# next steps (enable Pages; raise the opt-in PR with its own entry). Warns when
-# tessl.json is not in vendored mode, since the workflows run the vendored tile.
+# next steps (enable Pages; raise the opt-in PR with its own entry). Works in
+# any tessl mode: the workflows install the tile themselves.
 # Exits 2 on a usage error or when not at a git repository's root; no existing
 # weeknotes are migrated.
 set -eu
@@ -45,10 +45,6 @@ case $ctype in ""|knowledge|code|both) ;; *) echo "site-init.sh: --content-type 
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "site-init.sh: not in a git repository" >&2; exit 2; }
 [ "$(cd "$root" && pwd -P)" = "$(pwd -P)" ] || { echo "site-init.sh: run from the repository root ($root)" >&2; exit 2; }
-
-if [ ! -f tessl.json ] || [ "$(jq -r '.mode // empty' tessl.json 2>/dev/null)" != vendored ]; then
-  echo "site-init.sh: warning: tessl.json is not in vendored mode; the workflows run the tile from .tessl/plugins/mhclg-aaai/proj-site, so set \"mode\": \"vendored\" and reinstall" >&2
-fi
 
 created=()
 # write_new <path>: write stdin to <path> only if it does not exist.
