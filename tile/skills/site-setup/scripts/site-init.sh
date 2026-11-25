@@ -46,10 +46,6 @@ case $ctype in ""|knowledge|code|both) ;; *) echo "site-init.sh: --content-type 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "site-init.sh: not in a git repository" >&2; exit 2; }
 [ "$(cd "$root" && pwd -P)" = "$(pwd -P)" ] || { echo "site-init.sh: run from the repository root ($root)" >&2; exit 2; }
 
-if [ ! -f tessl.json ] || [ "$(jq -r '.mode // empty' tessl.json 2>/dev/null)" != vendored ]; then
-  echo "site-init.sh: warning: tessl.json is not in vendored mode; the workflows run the tile from .tessl/plugins/mhclg-aaai/proj-site, so set \"mode\": \"vendored\" and reinstall" >&2
-fi
-
 created=()
 # write_new <path>: write stdin to <path> only if it does not exist.
 write_new() {
