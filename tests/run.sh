@@ -8,6 +8,7 @@
 # Usage: tests/run.sh [pattern]   # only files whose name contains pattern
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
+for v in $(compgen -e | grep '^GITHUB_' || true); do unset "$v"; done
 pass=0; failed=0
 for file in "$here"/test_*.sh; do
   [ -e "$file" ] || continue
