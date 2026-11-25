@@ -9,18 +9,17 @@ date: 2026-11-25
 
 ## Context
 
-ADR 0001 decides what the site contains but not how it is laid out or looked at. The human reviewed the site and asked for: clearer separation between section headings; the MHCLG colour scheme; no "Latest summary" on the overview, because a visitor may not know what summaries are; clearer tab names; a split of long-form docs from technical documentation; and a new link order.
+ADR 0001 decides what the site contains but not how it is laid out or looked at. The human reviewed the site and asked for clearer separation between section headings, the MHCLG colour scheme, no "Latest summary" on the overview (a visitor may not know what summaries are), clearer tab names, long-form docs split from technical documentation, and a new link order.
 
-A mockup built from real site content, over several rounds of feedback, settled the design below. The shared layouts and menu code change, so every opted-in project gets the result.
+A mockup built from real site content, over several rounds of feedback, settled the design below. Every opted-in project gets the result.
 
 ## Decision
 
-**Tabs.** In this order: Overview, Guides, Docs, Weeknotes, Latest updates, Coming next. They replace "Summaries", "Changes" and "Upcoming" (the first three renames) and split the old "Docs".
+**Tabs.** In this order: Overview, Guides, Docs, Weeknotes, Latest updates, Coming next. Weeknotes, Latest updates and Coming next rename "Summaries", "Changes" and "Upcoming"; Guides and Docs split the old "Docs" where needed.
 - Guides holds hand-written long-form docs, such as how to opt a project in.
 - Docs holds technical documentation: hand-written technical pages and the reference pages generated from docstrings.
-- Guides and Docs appear only when they have at least one page; the other four always appear.
 
-**Web addresses** match the tabs: `/guides/`, `/docs/`, `/weeknotes/`, `/updates/`, `/coming-next/`. Old `/summaries/`, `/changes/` and `/upcoming/` links break; there are no redirects.
+**Web addresses** match the tabs: `/guides/`, `/docs/`, `/weeknotes/`, `/updates/`, `/coming-next/`. Old `/summaries/`, `/changes/` and `/upcoming/` links break; the site is days old.
 
 **Overview.** No "Latest summary". It shows a card per section with a one-line description, then "What happened this week": the latest weeknote with a short extract and a line saying what weeknotes are.
 
@@ -40,25 +39,25 @@ A mockup built from real site content, over several rounds of feedback, settled 
 
 **GitHub links.** Anything from GitHub links to its page: PRs and issues with `#N` as the link text, document paths to the file, short commit IDs to the commit. Each update's page has an "On GitHub" section linking its PR and the documents it refers to.
 
-**Coming next.** Each row is the issue title plus its `#N` link. A row expands in place only where the issue has a short section written for the site; its text is shown, with a link to the full discussion on GitHub. Without that section the row does not expand. The issue's opening text is never shown.
+**Coming next.** Each row is the item's title and link. The upcoming-work source supplies an optional site summary per item; a row expands in place only where one exists, and shows only that text. The GitHub-issues adapter takes it from a section written for the site. An issue's opening text is never shown.
 
 ## Alternatives considered
 
 - **"Longform docs" and "Tech docs" as labels.** Replaced by Guides and Docs. "How-to guides" is long for a tab, "Using [project]" changes the label per project, "Handbook" sounds odd for a code project.
 - **A grey band behind the title only.** Replaced by a whole-page grey background.
-- **A switch labelled with the current mode,** or following only the system setting, or always light. The switch labelled with its action was chosen.
-- **Coming next as title and link only,** or showing the opening of the issue (unreviewed, and some issues open with internal notes), or separate short description pages (a sentence or two each). The opt-in summary was chosen.
-- **Keeping the old web addresses.** Not chosen: the address bar should match the tab, and the site is days old.
+- **A switch labelled with the current mode,** or following only the system setting, or always light.
+- **Coming next as title and link only,** showing an issue's opening (unreviewed; some open with internal notes), or separate description pages.
+- **Keeping the old web addresses.** The address bar should match the tab.
 
 ## Consequences
 
-- Every opted-in project gets the new layout, and tests of the old layout need updating.
-- Guides and Docs are conditional, so a project with no hand-written docs shows neither tab unless its content type generates reference pages.
-- Issue authors can opt text into the public site; collecting that text means a small change to how the site reads issues from GitHub.
-- Left to the plan: the content folders and how the writing and PR-check skills keep working with them; the exact opt-in marker in an issue; the section intro lines, "Open all" control and overview title treatment.
-- Out of scope: per-project theming (#22); a guard against sensitive text (#24); unreviewed issue text reaching the public site (#23); which issues count as coming next (#21). The colours were taken from the template, not the intranet palette page, which could not be fetched; they change if that page differs.
+- Every opted-in project gets the new presentation.
+- Issue authors can opt text into the public site.
+- Left to the plan: the content folders; when Guides and Docs appear, within ADR 0001's content-type rule; the opt-in marker in an issue; the link from an expanded row to the full GitHub discussion; the "Open all" control; section intro lines; the overview title treatment.
+- Out of scope: per-project theming (#22); a guard against sensitive text (#24); which issues count as coming next (#21).
+- The colours come from the template, not the intranet palette page, which could not be fetched; they may need revisiting if that page differs.
 
 ## References
 
-- ADR 0001: its site contents, sections by content type, and weeknotes-style summary are what this ADR lays out and renames; its Hugo-based core and adapters hold the layouts changed.
+- ADR 0001: its site contents, sections by content type, and weeknotes-style summary are what this ADR lays out and renames; its upcoming-work adapter supplies Coming next.
 - ADR 0002: the layouts ship in the public tile, so they are public.
