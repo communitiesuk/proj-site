@@ -20,19 +20,17 @@ Tests with an empty HOME, no `TESSL_*` variables, `@tessl/cli@0.123.0` and a thr
 - An anonymous install of a public plugin worked.
 - The failed install still exited 0.
 
-A CI runner holds only GitHub's `GITHUB_TOKEN`. tessl and GitHub accounts are separate, so the pusher's membership of the private tessl workspace does not help. Whether tessl can trust GitHub Actions runs directly was not ruled out. The choice is therefore a public plugin or a tessl key stored as a secret in every project.
+A CI runner holds only GitHub's `GITHUB_TOKEN`. tessl and GitHub accounts are separate, so the pusher's membership of the private tessl workspace does not help. Whether tessl can trust GitHub Actions runs directly was not ruled out. For the `tessl install` route the choice is therefore a public plugin or a tessl key stored as a secret in every project.
 
-Making the plugin public leaks nothing from projects: information flows one way, the tile's contents are generic, its fixtures are made up, and the source repo is already public. Anything later added under `tile/` becomes public.
+Making the plugin public leaks nothing from projects: information flows one way, the tile's contents are generic, its fixtures are made up, and the source repo is already public.
 
 ## Decision
 
-**Principle.** CI installs the tile the same way a developer does: it installs the tessl CLI and runs `tessl install` from the project's committed `tessl.json`.
+**CI route.** CI installs the tile the same way a developer does: it installs the tessl CLI and runs `tessl install` from the project's committed `tessl.json`.
 
-**Public plugin.** The proj-site plugin is public on the tessl registry, so an anonymous install works. Changing `"private": true` means publishing a new version, 0.1.2.
+**Public plugin.** The proj-site plugin is public on the tessl registry, so an anonymous install works.
 
-**No tessl-mode requirement.** proj-site works in any tessl mode, vendored or managed, and does not require, warn about or offer to change a project's mode. The workflow templates locate the tile from where the install put it, not from a vendored path.
-
-**Install check.** After `tessl install` the workflow checks that the tile arrived and fails with a clear message if it did not, because a failed install exits 0.
+**No tessl-mode requirement.** proj-site works in any tessl mode and requires none.
 
 ## Alternatives considered
 
@@ -47,7 +45,7 @@ Making the plugin public leaks nothing from projects: information flows one way,
 - Any project can opt in whatever its tessl mode, which unblocks the myelin pilot.
 - Everything published under `tile/` is public, so its content is checked before each release.
 - CI needs network access to the tessl registry and installs the CLI on each run.
-- Settled by the plan within this decision: removing the vendored-mode warning, mode check, README section and vendored test fixtures; how the templates locate the tile; whether to set `TESSL_SHARE_USAGE_DATA` in CI (unconfirmed that it works).
+- Left to the plan: how proj-site stops depending on vendored mode, including how the templates locate the tile; how CI responds to a failed install, which exits 0; whether to set `TESSL_SHARE_USAGE_DATA` in CI (unconfirmed that it works).
 - Out of scope: private repos opting in and the timeline and upcoming pages publishing unreviewed titles (#23); a guard against sensitive text in issues (#24); which issues count as "coming next" (#21); per-project theming (#22); whether tessl can trust GitHub Actions runs without a stored secret; what the CLI's usage data actually sends, which happens whether the plugin is public or private.
 
 ## References
