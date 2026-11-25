@@ -1,5 +1,6 @@
 # Tests that the tile survives the tessl registry, which delivers only files
-# with listed extensions and drops the executable bit.
+# with listed extensions and drops the executable bit, and that it is public
+# there, so CI can install it without a login (ADR 0002).
 
 test_tile_files_have_registry_safe_extensions() {
   bad=$(cd "$TILE_ROOT" && find . -type f | grep -vE '\.(md|txt|json|yml|yaml|toml|sh|py|js|ts|tsx|jsx)$' || true)
@@ -38,3 +39,9 @@ test_no_yaml_files_in_the_tile() {
   found=$(cd "$TILE_ROOT" && find . -type f \( -name '*.yml' -o -name '*.yaml' \) ! -path './evals/*')
   assert_eq "" "$found"
 }
+
+test_plugin_is_public() {
+  m="$TILE_ROOT/.tessl-plugin/plugin.json"
+  assert_eq "false" "$(jq -r '.private // false' "$m")" "the manifest marks the plugin private"
+}
+
