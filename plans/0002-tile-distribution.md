@@ -39,8 +39,7 @@ published tile and the pilot, so their results and the plan's deletion (step
    `SITE_TILE` at job level, run the pinned CLI version, run the install, and
    run the check before the script that uses the tile.
    `test_templates_reference_scripts_that_exist_in_the_tile` stays unchanged.
-   The templates do not set `TESSL_SHARE_USAGE_DATA`; whether it is
-   honoured is unconfirmed. The check workflow keeps its read-only
+   The templates do not set `TESSL_SHARE_USAGE_DATA`. The check workflow keeps its read-only
    permissions.
 
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
@@ -51,15 +50,17 @@ published tile and the pilot, so their results and the plan's deletion (step
    `tests/test_init.sh` first: rename
    `test_init_warns_without_vendored_mode_and_requires_repo_root` to
    `test_init_requires_repo_root_and_accepts_managed_mode`, replace its
-   warning assertion with one that a managed-mode `tessl.json` produces no
-   warning and creates `site/project.yaml`, `site/content/overview.md`,
+   warning assertion with one that a `tessl.json` with `"mode": "managed"`
+   produces no warning and creates `site/project.yaml`, `site/content/overview.md`,
    `.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml`,
    and keep the repo-root assertions. In the same commit, give the opt-in
-   fixture in `tile/evals/site-setup-0/setup.sh` a managed-mode
-   `tessl.json` (change its header comment too). In `criteria.json`, change
-   the context line's `tessl.json` to managed mode, and extend the workflows
-   criterion: both workflows run the pinned `tessl install` and the tile
-   check, and `tessl.json` stays in managed mode.
+   fixture in `tile/evals/site-setup-0/setup.sh` a `tessl.json` with
+   `"mode": "managed"` (change its header comment too). In `criteria.json`,
+   change the context line's `tessl.json` to `"mode": "managed"`, and extend
+   the workflows criterion: both workflows run
+   `npx -y @tessl/cli@0.123.0 install` and test that
+   `$SITE_TILE/skills/site-setup/scripts/check-pr.sh` exists, and
+   `tessl.json` keeps `"mode": "managed"`.
 
 3. **Docs match.** Edit `tile/skills/site-setup/SKILL.md` (prerequisites
    step 1: drop the vendored requirement and the ask-before-changing
@@ -85,17 +86,18 @@ published tile and the pilot, so their results and the plan's deletion (step
 
 5. **Publish and verify anonymously.** After the first implementation
    branch lands on the trunk (`dev`), the maintainer publishes from their local
-   login with `tessl plugin publish tile` and confirms the visibility is
-   Public. Then, in fresh managed-mode throwaway repos with an empty HOME
+   login with `tessl plugin publish tile` and confirms with
+   `tessl plugin info mhclg-aaai/proj-site` that the visibility is Public. Then, in fresh managed-mode throwaway repos with an empty HOME
    and no `TESSL_*` variables:
    - pin `0.2.0` in `tessl.json`, run `tessl install`, and assert the tile
      is at `.tessl/plugins/mhclg-aaai/proj-site` (`SITE_TILE`), its
-     manifest version is `0.2.0`, and `site-init.sh` runs;
+     manifest version is `0.2.0`, and `site-init.sh` creates
+     `site/project.yaml`, `site/content/overview.md` and the two workflows;
    - pin a nonexistent version, run the install and the templates' check,
      and assert the check fails with the missing-tile message.
 
    Record both results in Progress notes on the second implementation
-   branch. If the install fails, stop and report.
+   branch. If the 0.2.0 install fails, stop and report.
 
 6. **Hand back to plan 0001.** Plan 0001 step 13 runs the myelin pilot
    (opt-in PR with its own entry; the check workflow installs the tile and
