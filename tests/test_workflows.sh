@@ -1,7 +1,10 @@
 # Structural tests for the workflow templates (tile/templates/workflows/) and
 # this repository's own test workflow. Templates refer to the installed tile as
-# $SITE_TILE (.tessl/plugins/mhclg-aaai/proj-site) and to the trunk as __TRUNK__.
-# They ship as *.yml.txt: the registry install dropped *.yml files.
+# $SITE_TILE (.tessl/plugins/mhclg-aaai/proj-site), set for the whole job, and
+# to the trunk as __TRUNK__. They ship as *.yml.txt: the registry install
+# dropped *.yml files. Each template installs the tile itself, with a pinned
+# tessl CLI and the project's committed tessl.json, whatever its tessl mode,
+# then fails the job unless the tile arrived (a skipped install exits 0).
 
 W="$TILE/templates/workflows"
 
@@ -55,3 +58,34 @@ test_repo_test_workflow_runs_the_suite() {
   assert_contains "$f" "HUGO_VERSION:"
   assert_contains "$f" "actions/setup-python"
 }
+
+TESSL_INSTALL='npx -y @tessl/cli@0.123.0 install --yes --accept-warnings'
+TILE_CHECK='[ -f "$SITE_TILE/skills/site-setup/scripts/check-pr.sh" ]'
+
+# line_of <file> <fixed string>: number of the first line containing it, or 0.
+line_of() { grep -nF -- "$2" "$1" | head -n1 | cut -d: -f1 | grep . || echo 0; }
+
+test_templates_set_site_tile_for_the_whole_job() {
+  for f in "$W"/*.yml.txt; do
+    grep -qE '^      SITE_TILE: \.tessl/plugins/mhclg-aaai/proj-site$' "$f" ||
+      fail "SITE_TILE is not in the job env of $(basename "$f")"
+    assert_eq 1 "$(grep -c 'SITE_TILE:' "$f")" "SITE_TILE set once in $(basename "$f")"
+  done
+}
+
+test_templates_install_the_tile_and_check_it_before_use() {
+  for f in "$W"/*.yml.txt; do
+    n=$(basename "$f")
+    install=$(line_of "$f" "$TESSL_INSTALL")
+    check=$(line_of "$f" "$TILE_CHECK")
+    use=$(line_of "$f" 'bash "$SITE_TILE/')
+    [ "$install" -gt 0 ] || fail "$n does not run: $TESSL_INSTALL"
+    [ "$check" -gt 0 ] || fail "$n does not check the tile arrived"
+    [ "$install" -lt "$check" ] && [ "$check" -lt "$use" ] ||
+      fail "$n: install ($install), check ($check) and use ($use) are out of order"
+    assert_contains "$(sed -n "${check},\$p" "$f" | head -n4)" "tessl.json" \
+      "$n: the check's failure message names tessl.json"
+    assert_not_contains "$(cat "$f")" "TESSL_SHARE_USAGE_DATA"
+  done
+}
+
