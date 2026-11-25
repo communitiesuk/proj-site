@@ -1,6 +1,7 @@
 # Installed by proj-site's site-init.sh. Builds the project site and deploys
 # it to GitHub Pages on every push to the trunk. Enable Pages for the
-# repository with "GitHub Actions" as the source.
+# repository with "GitHub Actions" as the source. Installs the tile from the
+# project's tessl.json, in any tessl mode.
 name: Site
 on:
   push:
@@ -25,6 +26,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Install the proj-site tile
+        run: npx -y @tessl/cli@0.123.0 install --yes --accept-warnings
+      - name: Check the tile was installed
+        run: |
+          [ -f "$SITE_TILE/skills/site-setup/scripts/check-pr.sh" ] || {
+            echo "::error::The proj-site tile is not at $SITE_TILE. Check that tessl.json lists mhclg-aaai/proj-site and that tessl install could fetch it."
+            exit 1
+          }
       - name: Install Hugo
         run: |
           curl -fsSL -o "$RUNNER_TEMP/hugo.tgz" \
