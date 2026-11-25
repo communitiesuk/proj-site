@@ -164,9 +164,12 @@ registry install of 0.1.0 delivered no `*.yml` file.
 
 ## Opting in
 
-The project must use tessl in vendored mode (`"mode": "vendored"` in
-`tessl.json`), so the tile is committed under
-`.tessl/plugins/mhclg-aaai/proj-site/` where the workflows can run it.
+Any tessl mode works. The site workflows install the tile themselves: each
+run installs the pinned tessl CLI with `npx`, runs `tessl install` from the
+project's committed `tessl.json`, and fails the job if the tile did not arrive
+at `.tessl/plugins/mhclg-aaai/proj-site/`. So CI needs network access to the
+tessl registry. A private dependency in `tessl.json` is skipped in CI with a
+warning; the workflows need only proj-site, which is public.
 
 ```sh
 tessl install mhclg-aaai/proj-site
