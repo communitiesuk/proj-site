@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Run every tests/test_*.sh. Each test_* function runs in its own subshell
-# with a fresh $TMP. Exits non-zero if any test fails.
+# with a fresh $TMP, and without the caller's GITHUB_* environment variables:
+# in GitHub Actions these describe the run itself (GITHUB_HEAD_REF names the
+# pull request's branch), and a test that wants one sets it explicitly.
+# Exits non-zero if any test fails.
 #
 # Usage: tests/run.sh [pattern]   # only files whose name contains pattern
 set -u

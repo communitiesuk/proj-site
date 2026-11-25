@@ -15,3 +15,12 @@ test_failed_assertion_fails_the_test() {
   rm -rf "$d"
   assert_eq 1 "$rc"; assert_contains "$out" "FAIL test_x.sh test_x"
 }
+
+test_tests_run_without_github_variables() {
+  # In Actions, GITHUB_HEAD_REF names the PR's branch; a test must not see it.
+  d=$(mktemp -d); cp "$REPO_ROOT/tests/run.sh" "$REPO_ROOT/tests/lib.sh" "$d/"
+  printf 'test_x() {\n  assert_eq "" "$(env | grep "^GITHUB_" || true)"\n}\n' > "$d/test_x.sh"
+  set +e; out=$(GITHUB_HEAD_REF=feature-y GITHUB_ACTIONS=true bash "$d/run.sh" 2>&1); rc=$?; set -e
+  rm -rf "$d"
+  assert_eq 0 "$rc" "a test saw GITHUB_* variables: $out"
+}
