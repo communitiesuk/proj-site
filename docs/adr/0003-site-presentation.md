@@ -11,11 +11,11 @@ date: 2026-11-25
 
 ADR 0001 decides what the site contains but not how it is laid out or looked at. The human reviewed the site and asked for clearer separation between section headings, the MHCLG colour scheme, no "Latest summary" on the overview (a visitor may not know what summaries are), clearer tab names, long-form docs split from technical documentation, and a new link order.
 
-A mockup built from real site content, over several rounds of feedback, settled the design below. Every opted-in project gets the result.
+A mockup built from real site content, over several rounds of feedback, settled the design below.
 
 ## Decision
 
-**Tabs.** In this order: Overview, Guides, Docs, Weeknotes, Latest updates, Coming next. Weeknotes, Latest updates and Coming next rename "Summaries", "Changes" and "Upcoming"; Guides and Docs split the old "Docs" where needed.
+**Tabs.** In this order: Overview, Guides, Docs, Weeknotes, Latest updates, Coming next. Weeknotes, Latest updates and Coming next replace Summaries, Changes and Upcoming; Guides and Docs split the old "Docs" where needed.
 - Guides holds hand-written long-form docs, such as how to opt a project in.
 - Docs holds technical documentation: hand-written technical pages and the reference pages generated from docstrings.
 
@@ -23,7 +23,7 @@ A mockup built from real site content, over several rounds of feedback, settled 
 
 **Overview.** No "Latest summary". It shows a card per section with a one-line description, then "What happened this week": the latest weeknote with a short extract and a line saying what weeknotes are.
 
-**Colours** follow the MHCLG 2025 template, as kept by the chart skill:
+**Colours** follow the MHCLG 2025 template:
 - teal `#00625E`; magenta `#932A71` as the accent; surface grey `#E5E5E5`;
 - secondary colours only for the Timeline stage labels;
 - teal links, not the template's `#0099CC`, which is too pale on white.
@@ -39,14 +39,14 @@ A mockup built from real site content, over several rounds of feedback, settled 
 
 **GitHub links.** Anything from GitHub links to its page: PRs and issues with `#N` as the link text, document paths to the file, short commit IDs to the commit. Each update's page has an "On GitHub" section linking its PR and the documents it refers to.
 
-**Coming next.** Each row is the item's title and link. The upcoming-work source supplies an optional site summary per item; a row expands in place only where one exists, and shows only that text. The GitHub-issues adapter takes it from a section written for the site. An issue's opening text is never shown.
+**Coming next.** Each row is the item's title and link. The upcoming-work source supplies an optional site summary per item; a row expands in place only where one exists, and shows no other text from the item. The GitHub-issues adapter takes it from a section written for the site. An issue's opening text is never shown.
 
 ## Alternatives considered
 
 - **"Longform docs" and "Tech docs" as labels.** Replaced by Guides and Docs. "How-to guides" is long for a tab, "Using [project]" changes the label per project, "Handbook" sounds odd for a code project.
 - **A grey band behind the title only.** Replaced by a whole-page grey background.
-- **A switch labelled with the current mode,** or following only the system setting, or always light.
-- **Coming next as title and link only,** showing an issue's opening (unreviewed; some open with internal notes), or separate description pages.
+- **A switch labelled with the current mode** is redundant. Following only the system setting, or always light, ignores that people work in different lighting.
+- **Coming next as title and link only,** showing an issue's opening (unreviewed; some open with internal notes), or separate description pages (they would send readers to a sentence or two).
 - **Keeping the old web addresses.** The address bar should match the tab.
 
 ## Consequences
