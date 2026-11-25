@@ -71,11 +71,15 @@ test_hook_flag_merges_settings_once() {
   assert_eq 1 "$(jq '[.hooks.PreToolUse[].hooks[] | select(.command | contains("hook-pr-create.sh"))] | length' "$s")"
 }
 
-test_init_warns_without_vendored_mode_and_requires_repo_root() {
+test_init_requires_repo_root_and_accepts_managed_mode() {
   make_target "$TMP/w"; cd "$TMP/w"
-  printf '{"name":"widget","dependencies":{}}\n' > tessl.json
+  printf '{"name":"widget","mode":"managed","dependencies":{}}\n' > tessl.json
   err=$(init --trunk dev 2>&1 >/dev/null)
-  assert_contains "$err" "vendored"
+  assert_eq "" "$err" "site-init.sh wrote to stderr in managed mode"
+  for f in site/project.yaml site/content/overview.md \
+           .github/workflows/site-check.yml .github/workflows/site-pages.yml; do
+    assert_file "$f"
+  done
   mkdir -p "$TMP/w/sub"; cd "$TMP/w/sub"
   set +e; init 2>/dev/null; rc=$?; set -e
   assert_eq 2 "$rc"

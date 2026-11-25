@@ -1,5 +1,5 @@
 {
-  "context": "Tests whether the site-setup skill opts a repository in by running its opt-in script. task.md names proj-site but not the files, the script or the settings: every property below must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` on `dev`, tagged `fixture-base`, with origin `https://github.com/example/beacon.git`, `tessl.json` in vendored mode, and `src/beacon.py`. Inspect with `git show dev:<path>` and `git diff --name-status fixture-base dev`. Score from git state only.",
+  "context": "Tests whether the site-setup skill opts a repository in by running its opt-in script. task.md names proj-site but not the files, the script or the settings: every property below must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` on `dev`, tagged `fixture-base`, with origin `https://github.com/example/beacon.git`, `tessl.json` with `\"mode\": \"managed\"`, and `src/beacon.py`. Inspect with `git show dev:<path>` and `git diff --name-status fixture-base dev`. Score from git state only.",
   "type": "weighted_checklist",
   "checklist": [
     {
@@ -10,7 +10,7 @@
     {
       "name": "Both workflows, with the trunk substituted",
       "max_score": 35,
-      "description": "`.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml` are committed on `dev`; the Pages workflow contains `branches: [dev]` and no `__TRUNK__`; both refer to the tile as `.tessl/plugins/mhclg-aaai/proj-site`. FAILS IF: either is missing, the trunk is wrong or unsubstituted, or the workflows were hand-written without the tile path."
+      "description": "`.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml` are committed on `dev`; the Pages workflow contains `branches: [dev]` and no `__TRUNK__`; both refer to the tile as `.tessl/plugins/mhclg-aaai/proj-site`, run `npx -y @tessl/cli@0.123.0 install` and test that `$SITE_TILE/skills/site-setup/scripts/check-pr.sh` exists; `git show dev:tessl.json` keeps `\"mode\": \"managed\"`. FAILS IF: either workflow is missing, the trunk is wrong or unsubstituted, the workflows were hand-written without the tile path, the install or the tile check, or `tessl.json` was switched out of managed mode."
     },
     {
       "name": "Overview stub committed",
