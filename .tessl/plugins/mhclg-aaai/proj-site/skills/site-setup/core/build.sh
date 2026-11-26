@@ -24,14 +24,20 @@
 #                               when site/content/docs/ holds a page other than _index.md
 #   src/content/weeknotes/      site/content/summaries/*.md
 #   src/content/updates/        site/content/changes/*.md, each with `week`
-#                               (%G-W%V of its date) and, unless $SITE_OFFLINE=1,
-#                               `pr` (number of the PR that added it, via gh) added
+#                               (%G-W%V of its date), `ghrefs` (its `refs`, each
+#                               {"label", "url"}: the issue page for #N, the blob URL
+#                               for a path present at HEAD, no url for one absent) and,
+#                               unless $SITE_OFFLINE=1, `pr` (number of the PR that
+#                               added it, via gh) added
 #   src/content/coming-next/    section page; items in src/data/upcoming.json
 #   src/data/timeline.json      from timeline.sh, `recent` since the latest weeknote's
 #                               `period_end` (all recent when there is no weeknote)
 #   src/data/upcoming.json      from the `upcoming.source` adapter
 #
-# Every section's index title is its tab name.
+# Every section's index title is its tab name. The body of every copied page
+# (overview, guides, hand-written docs, updates, weeknotes; not generated
+# reference) goes through `link_github` (lib.sh), linking #N, docs/ and plans/
+# paths and commit IDs to GitHub.
 #
 # Adapters are resolved as <root>/<kind>/<name>.sh (run with bash), <name>.py
 # (run with python3), or an executable <name>, in that order; the registry

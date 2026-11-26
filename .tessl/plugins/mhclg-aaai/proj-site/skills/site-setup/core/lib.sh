@@ -13,6 +13,23 @@
 #   frontmatter_get <file> <key>
 #                             Print a top-level scalar from a Markdown file's YAML
 #                             front matter (between the first two `---` lines).
+#   link_github <repository> <project-dir>
+#                             Copy Markdown from stdin to stdout, linking GitHub
+#                             references in the body to https://github.com/<repository>:
+#                               #N (N not starting with 0, not after a letter, digit,
+#                                 `_` or `&`, not followed by a letter or digit)
+#                                 -> [#N](.../issues/N)
+#                               a path under docs/ or plans/ that exists at HEAD in
+#                                 <project-dir>, not after a letter, digit, `/`, `.`,
+#                                 `-` or `_`, not followed by a letter, digit or `/`
+#                                 -> [path](.../blob/HEAD/path); absent paths stay text
+#                               a 7-12 character lower-case hex string standing alone
+#                                 that resolves with `git rev-parse --verify <hex>^{commit}`
+#                                 in <project-dir> -> [hex](.../commit/hex)
+#                             Left unchanged: the front matter (a leading `---` block),
+#                             fenced code blocks, code spans, existing Markdown links,
+#                             URLs and HTML tags. With an empty <repository> the input
+#                             is copied unchanged. Needs python3 and git.
 
 _strip_value() { # strip comment, whitespace and surrounding quotes from stdin
   sed -e 's/[[:space:]]#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
@@ -53,4 +70,8 @@ frontmatter_get() {
     NR > 1 && $0 == "---" { exit }
     NR > 1 { k = $0; sub(/:.*/, "", k); if (k == key) { v = $0; sub(/^[^:]*:/, "", v); print v; exit } }
   ' "$1" | _strip_value
+}
+
+link_github() {
+  echo "link_github: not implemented" >&2; return 1
 }
