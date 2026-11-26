@@ -375,3 +375,20 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
   project (step 12).
 
 ## Progress notes
+
+- 2026-11-26, steps 1-11 on branch `chore-site-presentation` (#32): all 109
+  tests pass locally and in CI; the Pages deploy published the new site, with
+  `/guides/`, `/docs/`, `/weeknotes/`, `/updates/` and `/coming-next/` serving
+  and `/summaries/` and `/changes/` gone. The browser checks in Verification
+  were done by hand on a local preview of a demo build with five Coming next
+  items over three themes and one without a theme. The Site check on #32
+  reported a missing entry only because it ran after `land` had merged; the
+  entry is on `dev`.
+- 2026-11-26, step 12: the maintainer published `0.3.0`; moderation passed,
+  quality 95%. In a throwaway managed-mode repo with an empty HOME and no
+  `TESSL_*` variables, pinning `0.3.0`, `tessl install` installed the tile
+  with manifest version `0.3.0`, including `core/static/coming-next.js` and
+  the renamed layouts; `site-init.sh --content-type knowledge` created
+  `site/project.yaml`, `site/content/overview.md` and both workflows; the
+  build rendered `/guides/`, `/weeknotes/`, `/updates/`, `/coming-next/` and
+  `coming-next.js`.
