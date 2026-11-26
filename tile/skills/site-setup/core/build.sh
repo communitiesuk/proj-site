@@ -7,22 +7,31 @@
 # <out-dir>/src (never committed), then renders it into <out-dir>/public with
 # Hugo unless --no-render is given.
 #
-# The source tree:
+# The source tree (committed folders keep their names; the build writes the
+# section folders that set the web addresses):
 #   src/hugo.toml               generated: title from `name`, baseURL from
 #                               $SITE_BASE_URL (default "/"), menu of enabled sections
+#                               in the order Overview, Guides, Docs, Weeknotes,
+#                               Latest updates, Coming next, each named explicitly
 #   src/layouts/                copied from tile/core/layouts, each `*.html.txt`
 #                               renamed to `*.html` (the tessl registry drops .html)
+#   src/static/                 copied from tile/core/static, where it exists
 #   src/content/_index.md       from site/content/overview.md (title "Overview")
-#   src/content/changes/        site/content/changes/*.md, each with `week`
+#   src/content/guides/         site/content/guides/** — only for knowledge|both
+#   src/content/docs/           site/content/docs/** (hand-written; knowledge|both) and
+#                               docs/reference/ pages from each `languages` adapter
+#                               (code|both). Enabled for code|both, and for knowledge
+#                               when site/content/docs/ holds a page other than _index.md
+#   src/content/weeknotes/      site/content/summaries/*.md
+#   src/content/updates/        site/content/changes/*.md, each with `week`
 #                               (%G-W%V of its date) and, unless $SITE_OFFLINE=1,
 #                               `pr` (number of the PR that added it, via gh) added
-#   src/content/summaries/      site/content/summaries/*.md
-#   src/content/upcoming/       section page; items in src/data/upcoming.json
-#   src/content/docs/           site/content/docs/** — only for knowledge|both
-#   src/content/reference/      pages from each `languages` adapter — only for code|both
-#   src/data/timeline.json      from timeline.sh, `recent` since the latest summary's
-#                               `period_end` (all recent when there is no summary)
+#   src/content/coming-next/    section page; items in src/data/upcoming.json
+#   src/data/timeline.json      from timeline.sh, `recent` since the latest weeknote's
+#                               `period_end` (all recent when there is no weeknote)
 #   src/data/upcoming.json      from the `upcoming.source` adapter
+#
+# Every section's index title is its tab name.
 #
 # Adapters are resolved as <root>/<kind>/<name>.sh (run with bash), <name>.py
 # (run with python3), or an executable <name>, in that order; the registry
