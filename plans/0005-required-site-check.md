@@ -1,6 +1,6 @@
 ---
 title: Offer the site check as a required status at opt-in
-status: draft
+status: in-progress
 adr: 0001
 date: 2026-11-26
 deferred_reason: null
