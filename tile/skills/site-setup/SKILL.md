@@ -25,6 +25,13 @@ The harness states this skill's base directory when it loads the skill. Call it 
 4. **Build locally** (below) to confirm the site renders.
 5. **Commit** the files on the opt-in branch. Before raising the pull request, the `site-writing` skill writes the per-PR entry, and the first weekly summary, which is always due on opt-in.
 6. **Enable GitHub Pages** with GitHub Actions as the source, when the user has GitHub access: `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`. This publishes a public site, so confirm with the user first. Without access, list it as a next step.
+7. **Offer to require the site check.** Ask the user to confirm making the site check (the `check` job) a required status on the trunk. Say that a pull request then cannot merge while the check fails; that it adds only the site check, sets no up-to-date requirement and keeps existing protection settings; that on an unprotected trunk it also blocks force pushes to and deletion of the trunk; and that administrators can still bypass it. On confirmation, run `bash "$SKILL_DIR/scripts/require-site-check.sh" --trunk <trunk>` and act on its exit code:
+   - **0**: the check is required (or already was); say which.
+   - **1**: it failed; list the step as a next step with the `gh api` line or `Set it by hand:` line it printed.
+   - **2**: a usage error; fix the invocation and run it again.
+   - **3**: the trunk's protection has no required status checks; list its `Set it by hand:` line as a next step.
+
+   Without confirmation, list the step as a next step with the script's command line.
 
 Pushing a commit that adds workflows needs a token with the `workflow` scope; if a push is refused for that, ask the user to run `gh auth refresh -s workflow`.
 
@@ -42,4 +49,5 @@ hugo server --source <out-dir>/src                                  # preview
 - Do not hand-write `project.yaml` or the workflows; run the script, then edit.
 - Do not add the Claude Code hook unless asked.
 - Do not enable Pages without the user's confirmation; it publishes the site.
+- Do not require the site check without the user's confirmation, and do not change any other branch-protection setting.
 - Do not migrate the gitignored `weeknotes/` folder into `site/`.
