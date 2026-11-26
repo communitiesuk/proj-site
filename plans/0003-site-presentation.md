@@ -31,15 +31,17 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    `site/content/summaries/`), `content/updates/` (from
    `site/content/changes/`, with `week` and `pr` as now) and
    `content/coming-next/`. Menu, in order: Overview, Guides, Docs, Weeknotes,
-   Latest updates, Coming next, with `menus.main` names set explicitly (the
-   current code title-cases the folder name). Section index titles match the
+   Latest updates, Coming next, with `menus.main` names set explicitly. Section index titles match the
    tab names. Guides is enabled for `knowledge` and `both`. Docs is enabled
    for `code` and `both`, and for `knowledge` when `site/content/docs/`
    holds a page other than `_index.md`; hand-written pages are copied for
-   `knowledge` and `both`, not `code`. `check-pr.sh`, the skills and `timeline.sh` still read the
-   committed folders. Update the header comment of `build.sh`. Change
-   `tests/test_core.sh` first. The fixture gains a `site/content/guides/`
-   page, and these existing tests change:
+   `knowledge` and `both`, not `code`. The always-present section loop and `menu` list in `build.sh`
+   become updates, weeknotes and coming-next. `check-pr.sh`, the skills and
+   `timeline.sh` still read the committed folders. Update the header comment
+   of `build.sh`. First move `make_chain_repo` and `make_project` from
+   `tests/test_core.sh` to `tests/lib.sh`, so `tests/test_layouts.sh` can use
+   them. Then change `tests/test_core.sh`: the fixture gains a
+   `site/content/guides/` page, and these existing tests change:
    - `test_build_sections_follow_content_type` asserts, per type: knowledge
      has `guides/` and `docs/guide.md` and no `docs/reference`; code has
      `docs/reference/pkg/mod.md` and no `guides/` or `docs/guide.md`; both
@@ -65,7 +67,8 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    next heading or the end, trimmed; empty when there is no such heading.
    Nothing else from the body is output. `stub.sh` passes through a
    `summary` already in `site/upcoming-stub.json`. Change
-   `tests/test_upcoming.sh` first, with recorded `gh` output: an issue with
+   `tests/test_upcoming.sh` first, with recorded `gh` output:
+   `test_theme_label_extracted` expects `"summary":""` in its output; an issue with
    the section gives its text only; an issue with other text and no section
    gives `""` and the output contains none of that text; the section
    followed by another heading stops at it; the stub passes `summary`
@@ -74,22 +77,26 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
 
 3. **GitHub links.** In `S/core/build.sh`, link GitHub references in the
-   content it copies into `content/updates/` and `content/weeknotes/` (not
-   inside code spans or existing links): `#N` to
-   `https://github.com/<repository>/issues/N` (GitHub redirects a pull
-   request's number), a path under `docs/` or `plans/` that exists in the
-   project to `https://github.com/<repository>/blob/HEAD/<path>`, and a
-   7-to-12-character hex commit ID that resolves with `git rev-parse` in the
-   project to its commit page. Put the transform in `S/core/lib.sh` as
-   `link_github <repository> <project-dir>` (stdin to stdout). Each update
-   page gains an "On GitHub" section, rendered by
+   body of every page it copies into the build (overview, Guides, Docs,
+   updates, weeknotes; front matter is left as written, and not inside code
+   spans or existing links): `#N` to `https://github.com/<repository>/issues/N`,
+   a path under `docs/` or `plans/` that exists at HEAD in the project to
+   `https://github.com/<repository>/blob/HEAD/<path>` (a path absent at HEAD
+   stays plain text), and a 7-to-12-character hex commit ID that resolves with
+   `git rev-parse` in the project to its commit page. Put the transform in
+   `S/core/lib.sh` as `link_github <repository> <project-dir>` (stdin to
+   stdout). Each update page gains an "On GitHub" section, rendered by
    `S/core/layouts/updates/single.html.txt` from `pr` and `refs` front
-   matter, linking the PR and each document in `refs`. Change
+   matter, linking the PR and each document in `refs`. In the Timeline
+   (step 5's updates layout), each event's commit ID and its path link to
+   `https://github.com/<repository>/commit/<commit>`. Change
    `tests/test_core.sh` first: `link_github` cases for each form, for text
-   inside backticks, for a path that does not exist and for an unresolvable
-   hex string, both left alone; a rendered update page contains the "On
-   GitHub" heading, the PR link and a link for each document in `refs`; a
-   weeknote with `#42` renders `#42` as link text.
+   inside backticks, for a path absent at HEAD and an unresolvable hex
+   string, both left alone, and for front matter containing `#42`, left
+   unchanged; a rendered update page contains the "On GitHub" heading, the PR
+   link and a link for each document in `refs`; a weeknote with `#42` renders
+   `#42` as link text; the rendered overview, a guide and a doc each link a
+   `#N`; the Timeline links a commit ID and its path to the commit page.
 
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
 
@@ -115,7 +122,7 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    The stage colours are the only secondary colours, used on Timeline stage
    labels alone. Teal header bar holding the project name and the switch;
    white tab strip with the current tab underlined in teal; thick teal rule
-   above `h2`. The switch is a `<button>` whose visible and accessible name
+   above `h2`, with more space around it. The switch is a `<button>` whose visible and accessible name
    is "Dark mode" with a moon in light mode and "Light mode" with a sun in
    dark mode (the icon is `aria-hidden`); a script in `<head>` sets
    `data-theme` from `localStorage` (read and written in `try`/`catch`) or
@@ -133,12 +140,13 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    | Latest updates | What changed, pull request by pull request, by week and on a timeline. |
    | Coming next | Work the project plans to do next. |
 
-   Add `tests/test_layouts.sh` first, rendering the fixture with Hugo and
+   Add `tests/test_layouts.sh` first, using the fixtures in `tests/lib.sh`,
+   rendering the fixture with Hugo and
    asserting on the HTML and inline CSS: the tab labels and order; the
    active tab has the underline class; each token value above in its light
    and dark block; each intro on its section page; a button whose text is
    "Dark mode" and a script containing `prefers-color-scheme`,
-   `localStorage` and `data-theme`; no `#0099CC`; no `http` URL in a `src`,
+   `localStorage` and `data-theme`; no `http` URL in a `src`,
    `href` to a stylesheet or `@import`.
 
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
@@ -167,19 +175,20 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
      "Open all" button above the list (shown only where a row expands)
      opens every `<details>`.
    Change `tests/test_core.sh` and `tests/test_layouts.sh` first, with the
-   fixture's adapter giving one item with a `summary` and one without:
+   fixture's adapter giving one item with a `summary` and one without, each
+   carrying a `body` of issue-opening text:
    the home page has a card per section, "What happened this week", the
    weeknote title and extract, the weeknotes line, and no "Latest summary";
    the updates page has two tab controls and both panels; the coming-next
    page has one `<details>` for the item with a summary and none for the
-   other, shows the issue-opening text of neither, has the "Open all"
-   button, and each title links to its issue.
+   other, shows neither `body`, has the "Open all" button, and each title links to its issue.
 
 6. **Move this repository's content.** Move
    `site/content/docs/opting-in.md` to `site/content/guides/opting-in.md`
    (changing its "add long-form guides under `site/content/docs/`" line to
-   `site/content/guides/`, and its tab and path references), and add to it
-   the `## Site summary` marker for issue authors. Keep
+   `site/content/guides/`, and its tab and path references; its "Existing
+   weeknotes are not migrated" sentence to name the gitignored `weeknotes/`
+   folder), and add to it the `## Site summary` marker for issue authors. Keep
    `site/content/docs/how-it-works.md` in Docs, updating its text for the
    new tab names and addresses and adding the same marker. Edit
    `site/content/overview.md` to drop mention of a latest summary and to use
@@ -195,27 +204,35 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    `description` is changed from "the long-form docs under
    site/content/docs/" to "the guides under site/content/guides/, the
    technical docs under site/content/docs/". Extend `tile/evals/site-update-0`
-   first (`setup.sh` adds `site/content/guides/exporting.md` describing
-   `export_csv`, moved from the docs page; `criteria.json` has "The guide no
-   longer describes CSV export", failing if `export_csv` or a CSV export
-   instruction remains outside a removal sentence).
+   first: `setup.sh` creates `site/content/guides/exporting.md` (moved from
+   `site/content/docs/`) describing `export_csv`; criterion 1 and the
+   `context` score `site/content/guides/exporting.md` (or its successor under
+   `site/content/guides/`), and criterion 3 keeps checking both it and the
+   overview.
 
 > **Directive for the implementer**: this step will author a new skill. Load the `skill-forge` skill before writing the `SKILL.md` (frontmatter → failing eval scenario → skill body).
 
 8. **site-writing skill.** In `tile/skills/site-writing/SKILL.md`, change
-   the `description` to skip only private notes (not weeknotes) and to
-   trigger when asked to write the week's weeknote, and replace the body's
-   "Do not write weeknotes or any private notes here" with "Do not write
-   private notes here". Extend `tile/evals/site-writing-1` first: its
-   `criteria.json` gains a criterion that the due weeknote is committed
-   under `site/content/summaries/` and is not described as private.
+   the `description` to skip the gitignored `weeknotes/` folder a project
+   keeps private (not weeknotes in general) and to trigger when asked to
+   write the week's weeknote, and replace the body's "Do not write weeknotes
+   or any private notes here" with "Do not write into the gitignored
+   `weeknotes/` folder; everything under `site/` is public". Add
+   `tile/evals/site-writing-2` first (`setup.sh` as `site-writing-1`'s, with
+   no file under `site/content/summaries/`; `task.md` asks for this week's
+   weeknote for `lantern` and says nothing about where it goes;
+   `criteria.json` scores that the due `site/content/summaries/<DUE>.md`
+   (DUE as in `site-writing-1`) is committed on `feature-date-filter`,
+   failing if none is).
 
 9. **Remaining docs.** Run the `site-update` skill on the branch, then edit
    by hand what it lists:
    - `tile/skills/site-setup/SKILL.md` (body only; `description`
      unchanged): the build description names the new sections and
      addresses, and "Do not migrate private weeknotes into `site/`" says
-     "private notes". `S/scripts/site-init.sh` needs no change.
+     "Do not migrate the gitignored `weeknotes/` folder into `site/`".
+   - `S/scripts/site-init.sh` (header comment only): "no existing weeknotes
+     are migrated" names the gitignored `weeknotes/` folder.
    - `tile/skills/site-writing/SKILL.md` body: the names Weeknotes, Latest
      updates and Coming next; the `## Site summary` marker; the
      committed-folder to address mapping.
@@ -232,8 +249,8 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
     and confirms with `tessl plugin info mhclg-aaai/proj-site` that `0.3.0`
     is listed. On the final branch, in a throwaway managed-mode repo with an
     empty HOME and no `TESSL_*` variables, pin `0.3.0`, run `tessl install`,
-    run `site-init.sh`, and build; record the result in Progress notes.
-    Delete this plan in the branch's final commit, with the `Completes:`
+    run `site-init.sh`, and build; record the result in Progress notes and
+    commit it. Delete this plan in the branch's last commit, after that one, with the `Completes:`
     trailer and a body saying what the plan produced.
 
 ## Verification
@@ -252,9 +269,10 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
   happened this week". Latest updates has "By week" and "Timeline" tabs.
   Coming next rows show title and link, expand only where the issue has a
   `## Site summary`, and show no other issue text.
-- In the built weeknotes and updates, every `#N`, every path under `docs/`
-  or `plans/` that exists and every commit ID that resolves links to
-  GitHub; each update page has "On GitHub".
+- In every built page, every `#N`, every path under `docs/` or `plans/`
+  that exists at HEAD and every commit ID that resolves links to GitHub;
+  each Timeline commit ID and path links to its commit page; each update
+  page has "On GitHub".
 - `tests/scan-site.sh . <public-dir>` over the built site finds no author
   names or secret patterns.
 - This repository's Pages deploy publishes the new site after merge, and
