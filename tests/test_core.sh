@@ -173,3 +173,61 @@ test_rendered_links_respect_a_base_path() {
   assert_contains "$home" 'class="site" href="/sub/"'
   ! grep -q 'href="/"' "$TMP/out/public/index.html" || fail "a link ignores the base path"
 }
+
+# --- GitHub links ------------------------------------------------------------
+
+test_link_github_links_each_form() {
+  make_chain_repo "$TMP/r"; . "$TILE/core/lib.sh"
+  c=$(git -C "$TMP/r" rev-parse --short=8 HEAD)
+  out=$(printf 'See #42, docs/adr/0001-choice.md and %s.\n' "$c" | link_github org/repo "$TMP/r")
+  assert_eq "See [#42](https://github.com/org/repo/issues/42), [docs/adr/0001-choice.md](https://github.com/org/repo/blob/HEAD/docs/adr/0001-choice.md) and [$c](https://github.com/org/repo/commit/$c)." "$out"
+}
+
+test_link_github_leaves_the_rest_alone() {
+  make_chain_repo "$TMP/r"; . "$TILE/core/lib.sh"
+  c13=$(git -C "$TMP/r" rev-parse HEAD | cut -c1-13)
+  tree=$(git -C "$TMP/r" rev-parse --short=8 'HEAD^{tree}')
+  input=$(cat <<TEXT
+Code \`#42\` and \`docs/adr/0001-choice.md\`.
+\`\`\`
+#42 docs/adr/0001-choice.md
+\`\`\`
+Deleted plans/0001-build.md, made-up fedcba9 and tree $tree.
+Inside mydocs/adr/0001-choice.md and content/docs/adr/0001-choice.md.
+Not issues: #42a, #00625E, #000000, &#39; and $c13.
+Linked already: [#42](https://example.com/x) and https://example.com/page#42 and <a href="#42">x</a>.
+TEXT
+)
+  assert_eq "$input" "$(printf '%s\n' "$input" | link_github org/repo "$TMP/r")"
+}
+
+test_link_github_leaves_front_matter_and_needs_a_repository() {
+  make_chain_repo "$TMP/r"; . "$TILE/core/lib.sh"
+  out=$(printf -- '---\ntitle: Issue #42\nrefs: ["#42"]\n---\nSee #42.\n' | link_github org/repo "$TMP/r")
+  assert_eq "$(printf -- '---\ntitle: Issue #42\nrefs: ["#42"]\n---\nSee [#42](https://github.com/org/repo/issues/42).')" "$out"
+  assert_eq "See #42." "$(printf 'See #42.\n' | link_github "" "$TMP/r")"
+}
+
+test_build_links_github_references() {
+  command -v "${HUGO:-hugo}" >/dev/null || { echo "hugo not installed"; return 1; }
+  make_project "$TMP/p" both
+  printf '#!/bin/sh\n# stub gh: api repos/<r>/commits/<sha>/pulls --jq ...\necho 42\n' > "$TMP/gh"; chmod +x "$TMP/gh"
+  SITE_OFFLINE=0 SITE_GH="$TMP/gh" build "$TMP/p" "$TMP/out"
+  p="$TMP/out/public"; gh=https://github.com/example/fixture
+  entry=$(cat "$p/updates/2026-01-05-entry-one/index.html")
+  assert_contains "$entry" "On GitHub"
+  assert_contains "$entry" "href=\"$gh/pull/42\""
+  assert_contains "$entry" "href=\"$gh/issues/42\""
+  assert_contains "$entry" "href=\"$gh/blob/HEAD/docs/adr/0001-choice.md\""
+  assert_contains "$entry" "plans/0001-build.md"
+  assert_not_contains "$entry" "blob/HEAD/plans/0001-build.md"
+  assert_contains "$(cat "$p/weeknotes/2026-w01/index.html")" ">#42</a>"
+  for page in index.html guides/start/index.html docs/guide/index.html; do
+    assert_contains "$(cat "$p/$page")" "href=\"$gh/issues/42\"" "$page"
+  done
+  # The Timeline links each event's commit ID and path to the commit page.
+  sha=$(jq -r '.[] | select(.kind == "discovery-added") | .commit' "$TMP/out/src/data/timeline.json")
+  updates=$(cat "$p/updates/index.html")
+  assert_contains "$updates" "href=\"$gh/commit/$sha\">$sha</a>"
+  assert_contains "$updates" "href=\"$gh/commit/$sha\">docs/discovery/0001-idea.md</a>"
+}

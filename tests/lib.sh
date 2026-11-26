@@ -81,12 +81,12 @@ languages: [fake]
 upcoming:
   source: fake
 YAML
-  printf -- '---\ntitle: Overview\n---\nOVERVIEW-TEXT\n' > "$r/site/content/overview.md"
-  printf -- '---\ntitle: Guide\n---\nGUIDE-TEXT\n' > "$r/site/content/docs/guide.md"
-  printf -- '---\ntitle: Start here\n---\nHOWTO-TEXT\n' > "$r/site/content/guides/start.md"
-  printf -- '---\ntitle: ENTRY-ONE\ndate: 2026-01-05\ntheme: Core\nrefs: []\n---\nBody.\n' \
+  printf -- '---\ntitle: Overview\n---\nOVERVIEW-TEXT See #42.\n' > "$r/site/content/overview.md"
+  printf -- '---\ntitle: Guide\n---\nGUIDE-TEXT See #42.\n' > "$r/site/content/docs/guide.md"
+  printf -- '---\ntitle: Start here\n---\nHOWTO-TEXT See #42.\n' > "$r/site/content/guides/start.md"
+  printf -- '---\ntitle: ENTRY-ONE\ndate: 2026-01-05\ntheme: Core\nrefs: ["#42", "docs/adr/0001-choice.md", "plans/0001-build.md"]\n---\nBody.\n' \
     > "$r/site/content/changes/2026-01-05-entry-one.md"
-  printf -- '---\ntitle: Week of 2026-01-01\nperiod_start: 2025-12-25\nperiod_end: 2026-01-06\n---\nSUMMARY-TEXT\n' \
+  printf -- '---\ntitle: Week of 2026-01-01\nperiod_start: 2025-12-25\nperiod_end: 2026-01-06\n---\nSUMMARY-TEXT See #42.\n' \
     > "$r/site/content/summaries/2026-W01.md"
   commit_at "$r" 2026-01-09T10:00:00Z -m "Opt in"
   mkdir -p "$TMP/adapters/upcoming" "$TMP/adapters/reference"
