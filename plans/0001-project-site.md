@@ -240,3 +240,23 @@ Implements [ADR 0001](../docs/adr/0001-project-site.md).
   content, so it can block unrelated commands; the merge in `land` does not
   wait for checks, so enforcement needs branch protection requiring the
   `check` status. Second pilot: myelin, next.
+
+- 2026-11-26, step 13 (myelin): opted `communitiesuk/myelin` in with
+  proj-site 0.5.0, through the site-setup skill, on myelin's own
+  git-workflow (0.6.2, whose `land` waits for the trunk's required checks).
+  The opt-in PR (communitiesuk/myelin#221) ran the site check without an
+  entry or summary and it failed for both; in CI the check workflow
+  installed only proj-site, not myelin's other dependency. myelin's `dev`
+  already required pull requests with no status checks, so
+  `require-site-check.sh` stopped with its settings link (exit 3); once
+  status checks were enabled by hand it added `check`. With the per-PR
+  entry and the first weekly summary (2026-W48, covering the project since
+  2026-08-27) the check passed, and `land` merged only after it had
+  (check completed 21:08:46, merged 21:08:59). The Pages deploy published
+  https://communitiesuk.github.io/myelin/ with every section, and the scan
+  of the built site found no author names or secrets. Found during the
+  pilot: the exit-3 case falls to the user and the manual route is easy
+  to get wrong (#46). The two items left open by this repository's pilot
+  are resolved: the hook's text matching stays open as #19, and
+  enforcement is now branch protection with `land` waiting for checks
+  (ADR 0001, #40; plan 0005; myelin#216).
