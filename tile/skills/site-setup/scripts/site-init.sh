@@ -115,4 +115,5 @@ fi
 echo "Next steps:"
 echo "  1. Edit site/content/overview.md, and site/project.yaml if needed."
 echo "  2. Enable GitHub Pages for the repository with \"GitHub Actions\" as the source."
-echo "  3. Raise the opt-in PR with its own per-PR entry (the site-writing skill writes it)."
+echo "  3. Require the site check on $trunk (needs admin rights): bash .tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/require-site-check.sh --trunk $trunk"
+echo "  4. Raise the opt-in PR with its own per-PR entry (the site-writing skill writes it)."
