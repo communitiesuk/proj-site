@@ -29,10 +29,10 @@ branches are not required to be up to date with the trunk.
 
 1. **A script that requires the check.** Add
    `S/scripts/require-site-check.sh [--trunk <branch>] [--repo <owner/name>]`.
-   The trunk defaults as in `site-init.sh` (origin/HEAD, else the first
-   existing of `dev`, `main`, `master`); the repository defaults to the
-   origin remote's `owner/name`. It uses only `gh api` and `jq`, and
-   changes nothing but the trunk's required status checks:
+   It resolves the trunk as `site-init.sh` does; the repository defaults to
+   the origin remote's `owner/name`. It uses `git`, `gh` and `jq`, and
+   changes nothing but the trunk's required status checks. It requires the
+   status `check` with no `app_id`, so GitHub selects the app:
    - `gh api repos/<repo>/branches/<trunk>/protection` answers 404 (the
      trunk is unprotected): `PUT` it with `--input` JSON of
      `required_status_checks` `{"strict": false, "checks": [{"context": "check"}]}`
@@ -41,11 +41,13 @@ branches are not required to be up to date with the trunk.
    - Protection exists with `required_status_checks`, and `check` is not
      among its contexts: `POST
      repos/<repo>/branches/<trunk>/protection/required_status_checks/contexts`
-     with `["check"]`, which keeps the other contexts and the `strict`
+     with `--input` JSON `{"contexts": ["check"]}`, which keeps the other contexts and the `strict`
      setting; print that the check was added.
    - `check` is already required: change nothing and print so.
    - Protection exists without `required_status_checks`: change nothing,
-     print the one `gh api` command the user can run after reviewing, exit 3.
+     print the one `gh api` command the user can run after reviewing and the
+     settings URL `https://github.com/<repo>/settings/branches` (where
+     "Require status checks to pass" with `check` does it by hand), exit 3.
    - Any other `gh` failure (no admin rights answers 403 or 404 on the
      write, or no `gh` login): change nothing, print the response and the
      same manual command, exit 1.
@@ -58,8 +60,10 @@ branches are not required to be up to date with the trunk.
    `https://github.com/example/widget.git`. Assert for each case above: the
    calls made (the unprotected case `PUT`s exactly the JSON above to
    `repos/example/widget/branches/dev/protection`; the exists-with-checks case
-   makes no `PUT`; the already-required case makes only the `GET`), the exit
-   code, and that stdout names the outcome; `--trunk`/`--repo` override the
+   makes one `POST` with exactly `{"contexts": ["check"]}` and no `PUT`; the
+   already-required case makes only the `GET`), the exit code, that stdout
+   names the outcome, and that exits 1 and 3 print the manual command and
+   exit 3 also the URL; `--trunk`/`--repo` override the
    defaults; `strict` is never sent as `true`. Docstring: the script's
    header comment, in the style of `site-init.sh`. Run `tests/run.sh
    require_check` until it passes, then `tests/run.sh`.
@@ -72,11 +76,13 @@ branches are not required to be up to date with the trunk.
    add to the "Next steps" it prints, after the Pages step, a step
    "Require the site check on `<trunk>` (needs admin rights): `bash
    <tile>/skills/site-setup/scripts/require-site-check.sh --trunk <trunk>`",
-   with the trunk it resolved; renumber the PR step. Update the header
+   with the trunk it resolved, using the path
+   `.tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/require-site-check.sh`;
+   renumber the PR step. Update the header
    comment's "next steps" list. In `tests/test_init.sh`, first extend
    `test_init_creates_project_and_workflows` to assert the output contains
    `require-site-check.sh --trunk dev`, and `test_init_detects_python_and_trunk`
-   to assert `--trunk main`. `site-init.sh` itself never calls `gh` or
+   (which discards the output now; capture it) to assert `--trunk main`. `site-init.sh` itself never calls `gh` or
    changes settings, and the existing second-run test still passes.
 
    Commit: the script and `tests/test_init.sh`.
@@ -87,18 +93,17 @@ branches are not required to be up to date with the trunk.
    - Ask the user to confirm making the site check a required status on the
      trunk, saying that a pull request then cannot merge while the check
      fails, and that branches need not be up to date.
-   - On confirmation, and when the user has admin rights on the repository,
-     run `bash "$SKILL_DIR/scripts/require-site-check.sh" --trunk <trunk>`.
-     Relay its outcome. The check only becomes selectable after the workflow
-     has run once on the trunk or a PR, so when the script reports failure
-     for that or for missing rights, list the step as a next step instead.
-   - Without confirmation or admin rights, list the step as a next step with
-     that command.
+   - On confirmation, run
+     `bash "$SKILL_DIR/scripts/require-site-check.sh" --trunk <trunk>` and
+     relay its outcome by exit code: 0, the check is required (or already
+     was); 1, no admin rights or `gh` failure, so list the step as a next
+     step with the command it printed; 2, a usage error, so fix the
+     invocation and run again; 3, the trunk's protection has no required
+     status checks, so list the manual route it printed as a next step.
+   - Without confirmation, list the step as a next step with that command.
 
-   Add to "Do not": do not require the check without the user's confirmation
-   and admin rights, and do not change any other branch-protection setting.
-   Update step 1's wording only where the opt-in sequence numbers change.
-   Run `tests/run.sh`; confirm `tile/evals/site-setup-0/` needs no change (its
+   Add to "Do not": do not require the check without the user's confirmation,
+   and do not change any other branch-protection setting. Run `tests/run.sh`; confirm `tile/evals/site-setup-0/` needs no change (its
    task skips anything needing GitHub, and no criterion mentions branch
    protection) by reading `criteria.json` and `task.md`.
 
@@ -107,17 +112,19 @@ branches are not required to be up to date with the trunk.
 4. **Docs match.** Edit:
    - `README.md`, "Opting in": after the "Then enable GitHub Pages" paragraph,
      add a paragraph: the opt-in offers to make the site check (the `check`
-     job) a required status on the trunk, through branch protection, with the
-     user's confirmation and admin rights, and otherwise lists it as a next
-     step; it can be run alone with `require-site-check.sh --trunk <branch>`;
-     only the site check is required and branches need not be up to date; a
+     job in `site-check.yml`) a required status on the trunk, through branch
+     protection, with the user's confirmation, and lists it as a next step
+     when declined or when admin rights are missing; it can be run alone with
+     `require-site-check.sh --trunk <branch>`; only the site check is
+     required and branches need not be up to date; a
      project using myelin's `land` finds that its merge straight after
      opening the PR is refused while the check runs, until myelin #216 is
-     fixed. Add `require-site-check.sh` to any scripts table in the README
-     that lists the opt-in scripts.
+     fixed. Place it under "## Opting in", before "### Projects already opted
+     in". In the "What ships" table, edit the `S/scripts/` row to name the
+     script that requires the check.
    - `site/content/guides/opting-in.md`: insert a step after step 4,
-     "Make the site check required on the trunk" (admin rights needed; with
-     the script command, and the equivalent in the repository's Settings,
+     "Make the site check required on the trunk" (admin rights needed; the required
+     status is the job `check` in `site-check.yml`; with the script command, and the equivalent in the repository's Settings,
      Branches, "Require status checks to pass", selecting `check`); renumber
      the PR step; add the `land` caveat in one sentence. Add to Requirements
      that admin rights on the repository are needed for that step only.
@@ -149,8 +156,11 @@ branches are not required to be up to date with the trunk.
    results in Progress notes on the final branch. If the `0.5.0` install
    fails, stop and report.
 
-7. **Prove it on a real repository.** In a throwaway repository the
-   maintainer owns, never this repository, with the published `0.5.0`
+7. **Prove it on a real repository.** First read
+   `gh api repos/communitiesuk/proj-site/branches/dev/protection` and record
+   it. In a public throwaway repository the maintainer owns (never this
+   repository; branch protection needs a public repository or a paid plan),
+   with the published `0.5.0`
    installed, opted in by the skill (`site-init.sh --trunk dev`) with its
    workflows merged on `dev`:
    - Run `require-site-check.sh --trunk dev`; confirm with
@@ -159,8 +169,9 @@ branches are not required to be up to date with the trunk.
      it reports no change.
    - Open a PR with no per-PR entry; once the check has failed,
      `gh pr view --json mergeStateStatus` shows `BLOCKED`, and
-     `gh pr merge` is refused. Add the entry; once the check passes,
-     `mergeStateStatus` is `CLEAN`.
+     `gh pr merge` is refused. Add the entry, and the weekly summary if the
+     check reports one due; once the check passes, `mergeStateStatus` is
+     `CLEAN`. This also confirms the real API accepted the `checks` form.
    - On a second throwaway repository with `dev` already protected with a
      different required context, the script adds `check` and keeps that
      context.
@@ -168,13 +179,14 @@ branches are not required to be up to date with the trunk.
      write access to), the script exits 1, changes nothing and prints the
      manual command.
 
-   Record the four results in Progress notes. Delete the throwaway
-   repositories afterwards.
+   Read the `proj-site` `dev` protection again, and record the four results
+   and both reads in Progress notes. Delete the throwaway repositories
+   afterwards.
 
 8. **Completion.** Delete this plan in the final commit of the final branch,
    after steps 6 and 7's records are committed, with the `Completes:` trailer
-   and a body saying what the plan produced. Write a release per-PR entry in
-   `site/content/changes/` in the same branch.
+   and a body saying what the plan produced. Write the final branch's per-PR entry
+   (`site-writing`) in `site/content/changes/` before its PR is opened.
 
 ## Verification
 
@@ -182,13 +194,12 @@ branches are not required to be up to date with the trunk.
   the extended `tests/test_init.sh`.
 - `site-init.sh` prints the require-the-check next step with the resolved
   trunk, and still creates and changes nothing else.
-- `tile/skills/site-setup/SKILL.md` offers the step with confirmation and
-  admin rights, and its `description` is unchanged.
+- `tile/skills/site-setup/SKILL.md` offers the step with confirmation, and its `description` is unchanged.
 - The published `0.5.0` carries `require-site-check.sh` (step 6).
 - On a real throwaway repository: the check becomes a required status with
   `strict` false, a PR without an entry cannot merge and one with it can,
   existing required contexts are kept, and a missing right changes nothing
   (step 7).
-- This repository's `dev` protection is untouched.
+- This repository's `dev` protection reads the same before and after step 7.
 
 ## Progress notes
