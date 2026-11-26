@@ -22,7 +22,14 @@ coming-next.js shows and wires it. */}}
 {{ range sort (uniq $themes) }}{{ $t := . }}{{ $g := slice }}{{ range $items }}{{ if eq .theme $t }}{{ $g = $g | append . }}{{ end }}{{ end }}{{ $groups = $groups | append (dict "name" $t "items" $g) }}{{ end }}
 {{ with $none }}{{ $groups = $groups | append (dict "name" "No theme" "items" .) }}{{ end }}
 <div class="coming">
+{{ if ge (len $items) 2 }}<form class="panel controls" hidden aria-label="Arrange the list">
+<label><input type="checkbox" name="group" checked> Group by theme</label>
+<label>Order by date <select name="order"><option value="oldest" selected>Oldest first</option><option value="newest">Newest first</option></select></label>
+<fieldset><legend>Show themes</legend>{{ range sort (uniq $themes) }}<label><input type="checkbox" name="theme" value="{{ . }}" checked> {{ . }}</label>{{ end }}{{ if $none }}<label><input type="checkbox" name="theme" value="" checked> No theme</label>{{ end }}</fieldset>
+<button type="button" class="reset">Reset</button>
+</form>{{ end }}
 {{ if $expands }}<button type="button" class="open-all" hidden>Open all</button>{{ end }}
+<div class="groups">
 {{ $n := 0 }}
 {{ range $groups }}
 {{/* Oldest date first, undated last. */}}
@@ -33,4 +40,6 @@ coming-next.js shows and wires it. */}}
 </section>
 {{ end }}
 </div>
+</div>
+<script src="{{ "coming-next.js" | relURL }}"></script>
 {{ else }}<p class="muted">Nothing queued.</p>{{ end }}{{ end }}

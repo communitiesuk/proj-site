@@ -26,6 +26,7 @@ The tab strip marks the current tab with aria-current="page". */}}<!doctype html
 :root:not([data-theme="light"]) { --page:#14181a; --surface:#1e2426; --line:#3a4346; --fg:#d6dada; --muted:#a2a9ab; --link:#5fc7c0; --accent:#d97fb8; --teal:#00625E; --grey:#2a3033; --recent:#3a3320; --explored:#6cb4ff; --decided:#b794e0; --built:#f0a64d; --shipped:#4fc08a; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
+[hidden] { display:none !important; }
 body { margin:0; background:var(--page); color:var(--fg); font:16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
 .wrap { max-width:56rem; margin:0 auto; padding:0 16px; }
 a { color:var(--link); }
@@ -71,6 +72,11 @@ a.card span { color:var(--muted); font-size:.95rem; }
 .inpage-tabs a[aria-selected="true"] { background:var(--surface); border-color:var(--line); font-weight:600; }
 .coming details > summary { cursor:pointer; }
 .coming details p { margin:.5rem 0 0; }
+.controls { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem 1.5rem; margin:0 0 1rem; }
+.controls fieldset { border:0; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:.25rem 1rem; }
+.controls legend { float:left; margin-right:.75rem; font-weight:600; }
+.controls select, .controls button { font:inherit; font-size:.9rem; color:var(--fg); background:var(--surface); border:1px solid var(--line); border-radius:.3rem; padding:.2rem .5rem; }
+.controls button { cursor:pointer; }
 .open-all { font:inherit; font-size:.9rem; margin:0 0 1rem; padding:.3rem .8rem; color:var(--fg); background:var(--surface); border:1px solid var(--line); border-radius:.3rem; cursor:pointer; }
 footer { background:var(--surface); border-top:1px solid var(--line); padding:1rem 0 2rem; }
 </style>
