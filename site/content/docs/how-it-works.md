@@ -54,6 +54,8 @@ writes it. Each weeknote covers the time since the previous one.
 ## What is checked
 
 Every pull request must add a per-PR entry, and must include the weeknote if
-one is due and no other open pull request already carries it. Everything
+one is due and no other open pull request already carries it. A project can
+make the check required on its trunk, so that a pull request cannot merge
+while it fails. Everything
 under `site/` is public: no named people, internal events only where they
 publicised the project, and no secrets.

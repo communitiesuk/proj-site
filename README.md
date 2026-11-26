@@ -27,7 +27,7 @@ tile `mhclg-aaai/proj-site`. The registry archive holds only the manifest and
 | `S/core/` | The build: bash 4+ with `git`, `gh` and `jq`, plus Hugo. |
 | `S/adapters/upcoming/` | Upcoming-work adapters (`github-issues`, `stub`). |
 | `S/adapters/reference/` | Reference-docs adapters, one per language (`python`). |
-| `S/scripts/` | The PR check, the opt-in script and the Claude Code hook. |
+| `S/scripts/` | The PR check, the opt-in script, the script that requires the site check on the trunk (`require-site-check.sh`) and the Claude Code hook. |
 | `tile/skills/` | `site-setup` (opt in, build), `site-writing` (entries and summaries) and `site-update` (keeps docs aligned). |
 | `S/templates/workflows/` | The PR-check and Pages workflows an opted-in project installs. |
 
@@ -187,6 +187,17 @@ project's other dependencies. The job fails with a message when proj-site is
 not usable (not listed in `tessl.json`, or listed with no `file:` source or
 version) or the tile did not arrive. CI needs network access to the tessl
 registry unless proj-site is pinned to a local path.
+
+The opt-in offers to make the site check (the `check` job in
+`site-check.yml`) a required status on the trunk, through branch protection,
+with the user's confirmation, and otherwise lists it as a next step. It can
+also be run alone with `require-site-check.sh --trunk <branch>`, which needs
+admin rights. It adds only the site check, sets no up-to-date requirement and
+keeps existing protection settings; on an unprotected trunk it creates
+protection, which also blocks force pushes to and deletion of the trunk.
+Administrators can still bypass it. A project using myelin's `land` finds
+that `land`'s merge, made straight after it opens the PR, is refused while
+the check runs, until myelin #216 is fixed.
 
 ### Projects already opted in
 
