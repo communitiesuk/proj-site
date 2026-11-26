@@ -1,3 +1,12 @@
+{{/* Coming next (ADR 0003): rows grouped by theme, each group an h3, groups
+in alphabetical order with items lacking a theme last under "No theme";
+oldest date first within a group, undated last. A row is the item's title
+linked to its GitHub issue and, where it has one, a theme tag; it carries
+data-item-theme and data-date. Where the item has a summary the row is a
+<details> whose only other text is that summary and a "Discuss on GitHub"
+link; otherwise it shows nothing else. An "Open all" button, rendered
+hidden and only where a row expands, opens every <details>; the controls
+script shows it. No text from an issue's body other than its summary. */}}
 {{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
 {{ $items := hugo.Data.upcoming }}
 {{ if $items }}<ul class="items">{{ range sort $items "theme" }}<li>{{ .title }} {{ with .theme }}<span class="tag">{{ . }}</span>{{ end }} <span class="muted">{{ .ref }}</span></li>{{ end }}</ul>

@@ -1,3 +1,8 @@
+{{/* Latest updates: the intro, then "By week" and "Timeline" as two in-page
+tabs (role="tablist"). Without script both panels show, as anchored
+sections; with script one shows at a time. Timeline events link their path
+and commit ID to the commit; highlighted events are new since the last
+weeknote. */}}
 {{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
 {{ $timeline := hugo.Data.timeline }}
 {{ with $timeline }}<h2>Timeline</h2>
