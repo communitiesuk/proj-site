@@ -242,3 +242,43 @@ branches are not required to be up to date with the trunk.
 - This repository's `dev` protection reads the same before and after step 7.
 
 ## Progress notes
+
+- 2026-11-26, steps 1-5 on branch `chore-required-site-check` (#43): all 124
+  tests pass locally and in CI; the Pages deploy published after merge. Two
+  expectations in `tests/test_require_check.sh` lost a trailing space after
+  the red commit and were rebuilt with `printf` in a separate commit. The
+  PR's Site check reported a missing entry only because it ran after `land`
+  had merged; the entry is on `dev`.
+- 2026-11-26, step 6: the maintainer published `0.5.0` (Public; moderation
+  passed; quality 93%, security Medium). Installed anonymously in a
+  throwaway folder (manifest `0.5.0`), `require-site-check.sh` is present;
+  run with `--repo example/widget --trunk dev` against the copied-out stub
+  and the unprotected fixtures it printed "Required the site check on dev.",
+  exited 0 and logged the GET then the PUT; the installed `site-init.sh`
+  prints "3. Require the site check on dev (needs admin rights): ...".
+- 2026-11-26, step 7, in public throwaway repositories under the
+  maintainer's account (`proj-site-protect-a`, `-b`), with `0.5.0`
+  installed. `communitiesuk/proj-site`'s `dev` read "Branch not protected"
+  before and after.
+  - Repository A: an agent following the site-setup skill ran
+    `site-init.sh --trunk dev`, then stopped and asked for confirmation,
+    with the skill's explanation, before touching protection. Declined: it
+    ran nothing, protection stayed unprotected, and it listed the step with
+    the script's command line. Offered again and accepted: it invoked the
+    script, which Claude Code's auto-mode classifier refused as a
+    destructive action, so the maintainer ran the same command; it printed
+    "Required the site check on dev." `required_status_checks` then held
+    `contexts: ["check"]`, `checks: [{"context":"check","app_id":null}]`,
+    `strict: false`; force pushes and deletion off, admins not enforced, no
+    reviews. A PR with no entry failed the check; `mergeStateStatus` was
+    `BLOCKED` and `gh pr merge` was refused ("the base branch policy
+    prohibits the merge", even for an admin without `--admin`). With the
+    entry and the due weeknote the check passed and it was `CLEAN`. Run
+    again, the script printed "The site check is already required on dev;
+    nothing changed." and the protection read identical before and after.
+  - Repository B, `dev` protected requiring `test` with `strict: true`: the
+    script printed "Added the site check to the required checks on dev.";
+    the contexts became `["test","check"]` and `strict` stayed `true`.
+  - The no-admin case was not run: no token or account without admin rights
+    was available. The stub tests cover its output.
+  - Both throwaway repositories were deleted by the maintainer.
