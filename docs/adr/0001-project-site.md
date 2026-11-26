@@ -38,7 +38,7 @@ The site's stakeholder content replaces the weeknotes and is written for a publi
 **Writing and enforcement are separate.**
 - Writing is done by a skill triggered before raising a PR. Skills are cross-agent through tessl.
 - Enforcement is a CI check on `pull_request`, with no agent involved. A script fails the PR if the per-PR entry is missing, or if the weekly summary is due and missing.
-- At opt-in, the site-setup skill offers to make the site check a required status on the trunk, through branch protection, and the guides document the step. It does so only with the user's confirmation and admin rights; otherwise the step is listed as a next step. Only the site check is required. Branches are not required to be up to date with the trunk.
+- At opt-in, the site-setup skill offers to make the site check a required status on the trunk, through branch protection, and the guides document the step. It does so only with the user's confirmation and admin rights; otherwise the step is listed as a next step. Only the site check is required, so a PR cannot merge while the site check fails. Branches are not required to be up to date with the trunk.
 - A Claude Code hook may run the skill as an optional speed-up only. Claude-only support for it is acceptable at first.
 
 **Deploy.** The site is deployed to GitHub Pages by a GitHub workflow.
@@ -65,6 +65,6 @@ The site's stakeholder content replaces the weeknotes and is written for a publi
 - Opting in costs a project the installed skills and scripts, a CI check, and a Pages workflow.
 - Because the CI check only enforces that the summary exists, the summary is written by an agent running the skill, not by CI.
 - Every PR on an opted-in project carries a per-PR entry.
-- Until myelin #216 is fixed, `land` cannot merge into a trunk where the check is required: it merges straight after opening the PR, and the merge is refused while checks run.
+- Where the site check is required on the trunk, myelin's `land` merges straight after it opens the PR, and that merge is refused while checks run (until myelin #216 is fixed).
 - Settled by the plan within this decision: the Hugo spike's outcome; which language adapters come first; which sections each content type enables.
 - Out of scope for now: myelin's setup check of trunk protection (myelin #217); hook support beyond Claude Code; where an agent would run if summaries were ever produced in CI.
