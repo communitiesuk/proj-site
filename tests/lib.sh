@@ -91,8 +91,14 @@ YAML
   commit_at "$r" 2026-01-09T10:00:00Z -m "Opt in"
   mkdir -p "$TMP/adapters/upcoming" "$TMP/adapters/reference"
   # Fakes as the registry delivers them: with an extension, no executable bit.
-  printf 'echo %s\n' "'[{\"title\":\"UPCOMING-ITEM\",\"ref\":\"#7\",\"state\":\"open\",\"theme\":\"Core\"}]'" \
-    > "$TMP/adapters/upcoming/fake.sh"
+  # Four items (A to D); each `body` is issue-opening text no page may show.
+  cat > "$TMP/adapters/upcoming/items.json" <<'JSON'
+[{"title":"ITEM-A","ref":"#11","state":"open","theme":"Alpha","date":"2026-01-03","summary":"SUMMARY-A","body":"BODY-A"},
+ {"title":"ITEM-B","ref":"#12","state":"open","theme":"Beta","date":"2026-01-01","summary":"","body":"BODY-B"},
+ {"title":"ITEM-C","ref":"#13","state":"open","theme":"","date":"","summary":"","body":"BODY-C"},
+ {"title":"ITEM-D","ref":"#14","state":"open","theme":"Alpha","date":"2026-01-02","summary":"","body":"BODY-D"}]
+JSON
+  printf 'cat "%s"\n' "$TMP/adapters/upcoming/items.json" > "$TMP/adapters/upcoming/fake.sh"
   printf 'import json\nprint(json.dumps([{"path": "pkg/mod.md", "title": "pkg.mod", "content": "REFERENCE-TEXT"}]))\n' \
     > "$TMP/adapters/reference/fake.py"
   chmod -x "$TMP/adapters/upcoming/fake.sh" "$TMP/adapters/reference/fake.py"

@@ -111,7 +111,7 @@ test_build_generates_config_entries_and_data() {
   assert_contains "$entry" 'week: "2026-W02"'
   assert_not_contains "$entry" "pr:"
   assert_contains "$(cat "$s/content/docs/reference/pkg/mod.md")" "REFERENCE-TEXT"
-  assert_eq "UPCOMING-ITEM" "$(jq -r '.[0].title' "$s/data/upcoming.json")"
+  assert_eq "ITEM-A" "$(jq -r '.[0].title' "$s/data/upcoming.json")"
   # Recent since the latest summary's period_end (2026-01-06).
   assert_eq "plan-completed,release,adr-revised" \
     "$(jq -r '[.[] | select(.recent) | .kind] | join(",")' "$s/data/timeline.json")"
@@ -156,7 +156,7 @@ test_build_renders_site_with_hugo() {
   assert_contains "$updates" "ENTRY-ONE"
   assert_contains "$updates" "2026-W02"
   assert_contains "$updates" "Build it"
-  assert_contains "$(cat "$p/coming-next/index.html")" "UPCOMING-ITEM"
+  assert_contains "$(cat "$p/coming-next/index.html")" "ITEM-A"
   assert_contains "$(cat "$p/weeknotes/index.html")" "Week of 2026-01-01"
   assert_contains "$(cat "$p/guides/start/index.html")" "HOWTO-TEXT"
   assert_contains "$(cat "$p/docs/guide/index.html")" "GUIDE-TEXT"

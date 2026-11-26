@@ -81,3 +81,76 @@ test_no_external_requests() {
     ! grep -q '@import' "$f" || fail "@import in $f"
   done
 }
+
+# pos <haystack> <needle>: byte offset of the first <needle>, or fail.
+pos() { local i; i=$(printf '%s' "$1" | grep -bo -- "$2" | head -1 | cut -d: -f1); [ -n "$i" ] || fail "[$2] not found"; echo "$i"; }
+
+test_overview_page() {
+  render both
+  home=$(cat "$PUB/index.html")
+  for intro in "How to use the project, step by step." \
+               "Technical documentation, including reference generated from the code." \
+               "A short weekly account of what the project explored, decided, built and shipped." \
+               "What changed, pull request by pull request, by week and on a timeline." \
+               "Work the project plans to do next."; do
+    assert_contains "$home" "$intro"
+  done
+  assert_eq 5 "$(printf '%s' "$home" | grep -o 'class="card' | wc -l | tr -d ' ')" "a card per section"
+  assert_contains "$home" "What happened this week"
+  assert_contains "$home" "Week of 2026-01-01"
+  assert_contains "$home" "SUMMARY-TEXT See #42."
+  assert_contains "$home" "Weeknotes are a short weekly account of what the project explored, decided, built and shipped."
+  assert_not_contains "$home" "Latest summary"
+}
+
+test_overview_without_a_weeknote() {
+  command -v "${HUGO:-hugo}" >/dev/null || { echo "hugo not installed"; return 1; }
+  make_project "$TMP/p" knowledge
+  git -C "$TMP/p" rm -q site/content/summaries/2026-W01.md
+  commit_at "$TMP/p" 2026-01-10T10:00:00Z -m "No weeknote"
+  build "$TMP/p" "$TMP/out"
+  assert_not_contains "$(cat "$TMP/out/public/index.html")" "What happened this week"
+}
+
+test_updates_page_tabs() {
+  render knowledge
+  u=$(cat "$PUB/updates/index.html")
+  assert_contains "$u" 'role="tablist"'
+  assert_eq 2 "$(printf '%s' "$u" | grep -o 'role="tab"' | wc -l | tr -d ' ')" "two tab controls"
+  assert_eq 2 "$(printf '%s' "$u" | grep -o 'role="tabpanel"' | wc -l | tr -d ' ')" "two panels"
+  assert_contains "$u" ">By week</"
+  assert_contains "$u" ">Timeline</"
+  assert_contains "$u" "since the last weeknote"
+  assert_not_contains "$u" "since the last summary"
+}
+
+test_coming_next_page() {
+  render knowledge
+  c=$(cat "$PUB/coming-next/index.html" | tr '\n' ' ')
+  gh=https://github.com/example/fixture
+  # Grouped by theme (Alpha, Beta, No theme), oldest first within a group.
+  a=$(pos "$c" '<h3[^>]*>Alpha</h3>'); d=$(pos "$c" ITEM-D); ia=$(pos "$c" ITEM-A)
+  b=$(pos "$c" '<h3[^>]*>Beta</h3>'); ib=$(pos "$c" ITEM-B)
+  n=$(pos "$c" '<h3[^>]*>No theme</h3>'); ic=$(pos "$c" ITEM-C)
+  [ "$a" -lt "$d" ] && [ "$d" -lt "$ia" ] && [ "$ia" -lt "$b" ] && [ "$b" -lt "$ib" ] \
+    && [ "$ib" -lt "$n" ] && [ "$n" -lt "$ic" ] || fail "order: Alpha D A, Beta B, No theme C"
+  for i in 11 12 13 14; do assert_contains "$c" "href=\"$gh/issues/$i\""; done
+  # Only A expands, with its summary and a link to the discussion.
+  assert_eq 1 "$(printf '%s' "$c" | grep -o '<details' | wc -l | tr -d ' ')" "one <details>"
+  details=$(printf '%s' "$c" | grep -o '<details.*</details>')
+  assert_contains "$details" "ITEM-A"; assert_contains "$details" "SUMMARY-A"
+  assert_contains "$details" "Discuss on GitHub"
+  for body in BODY-A BODY-B BODY-C BODY-D; do assert_not_contains "$c" "$body"; done
+  # Theme tags on A, B and D, none on C; data attributes on every row.
+  assert_eq 3 "$(printf '%s' "$c" | grep -o 'class="tag"' | wc -l | tr -d ' ')" "three theme tags"
+  assert_contains "$c" 'data-item-theme="Alpha" data-date="2026-01-03"'
+  assert_contains "$c" 'data-item-theme="" data-date=""'
+  # "Open all", hidden until the script shows it.
+  assert_contains "$(printf '%s' "$c" | grep -o '<button[^>]*>Open all</button>')" "hidden"
+}
+
+test_one_doctype_first() {
+  render knowledge
+  assert_eq 1 "$(grep -c '<!doctype html>' "$PUB/index.html")" "one doctype"
+  assert_eq '<!doctype html>' "$(grep -m1 . "$PUB/index.html")" "doctype first"
+}
