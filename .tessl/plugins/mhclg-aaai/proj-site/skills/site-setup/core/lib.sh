@@ -73,5 +73,60 @@ frontmatter_get() {
 }
 
 link_github() {
-  echo "link_github: not implemented" >&2; return 1
+  if [ -z "$1" ]; then cat; return; fi
+  python3 -c "$_LINK_GITHUB_PY" "$1" "$2"
 }
+
+_LINK_GITHUB_PY='
+import re, subprocess, sys
+repo, project = sys.argv[1], sys.argv[2]
+base = "https://github.com/" + repo
+cache = {}
+def git_ok(*args):
+    if args not in cache:
+        cache[args] = subprocess.run(["git", "-C", project] + list(args),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    return cache[args]
+# Protected spans, left exactly as written.
+PROTECT = re.compile(r"(`+).*?\1|!?\[[^\]]*\]\([^)]*\)|<[^>]+>|https?://\S+")
+REF = re.compile(
+    r"(?<![A-Za-z0-9_&])#([1-9][0-9]*)(?![A-Za-z0-9])"
+    r"|(?<![A-Za-z0-9/._-])((?:docs|plans)/[A-Za-z0-9._/-]*[A-Za-z0-9_])(?![A-Za-z0-9/])"
+    r"|(?<![A-Za-z0-9])([0-9a-f]{7,12})(?![A-Za-z0-9])")
+def link(m):
+    issue, path, sha = m.group(1), m.group(2), m.group(3)
+    if issue:
+        return "[#%s](%s/issues/%s)" % (issue, base, issue)
+    if path:
+        if git_ok("cat-file", "-e", "HEAD:" + path):
+            return "[%s](%s/blob/HEAD/%s)" % (path, base, path)
+        return path
+    if git_ok("rev-parse", "--verify", "-q", sha + "^{commit}"):
+        return "[%s](%s/commit/%s)" % (sha, base, sha)
+    return sha
+def text(line):
+    out, pos = [], 0
+    for m in PROTECT.finditer(line):
+        out.append(REF.sub(link, line[pos:m.start()])); out.append(m.group(0)); pos = m.end()
+    out.append(REF.sub(link, line[pos:]))
+    return "".join(out)
+lines = sys.stdin.read().split("\n")
+i, fence = 0, None
+if lines and lines[0] == "---":
+    i = 1
+    while i < len(lines) and lines[i] != "---":
+        i += 1
+    i += 1
+out = lines[:i]
+for line in lines[i:]:
+    f = re.match(r" {0,3}(`{3,}|~{3,})", line)
+    if fence:
+        if f and f.group(1)[0] == fence[0] and len(f.group(1)) >= len(fence):
+            fence = None
+        out.append(line)
+    elif f:
+        fence = f.group(1); out.append(line)
+    else:
+        out.append(text(line))
+sys.stdout.write("\n".join(out))
+'

@@ -91,8 +91,34 @@ section_index() { # dir title
   [ -f "$1/_index.md" ] || printf -- '---\ntitle: %s\n---\n' "$2" > "$1/_index.md"
 }
 
+# link_pages <dir>: run link_github over every Markdown file under <dir>, in place.
+link_pages() {
+  find "$1" -type f -name '*.md' | while IFS= read -r f; do
+    link_github "$repo" "$project" < "$f" > "$f.linked" && mv "$f.linked" "$f"
+  done
+}
+
+# ghrefs <entry>: its front-matter `refs` (an inline list) as a JSON array of
+# {"label", "url"}; nothing when it has none or they do not parse.
+ghrefs() {
+  local raw ref url out='[]'
+  raw=$(awk 'NR == 1 && $0 != "---" { exit } NR > 1 && $0 == "---" { exit }
+    NR > 1 && /^refs:/ { sub(/^refs:[[:space:]]*/, ""); print; exit }' "$1")
+  [ -n "$raw" ] && printf '%s' "$raw" | jq -e 'type == "array"' >/dev/null 2>&1 || return 0
+  while IFS= read -r ref; do
+    url=
+    case $ref in
+      \#[1-9]*) [ -n "$repo" ] && url="https://github.com/$repo/issues/${ref#\#}" ;;
+      *) [ -n "$repo" ] && git -C "$project" cat-file -e "HEAD:$ref" 2>/dev/null \
+           && url="https://github.com/$repo/blob/HEAD/$ref" ;;
+    esac
+    out=$(printf '%s' "$out" | jq -c --arg l "$ref" --arg u "$url" '. + [if $u == "" then {label: $l} else {label: $l, url: $u} end]')
+  done < <(printf '%s' "$raw" | jq -r '.[] | tostring')
+  printf '%s' "$out"
+}
+
 # Overview.
-if [ -f "$sitec/overview.md" ]; then cp "$sitec/overview.md" "$content/_index.md"
+if [ -f "$sitec/overview.md" ]; then link_github "$repo" "$project" < "$sitec/overview.md" > "$content/_index.md"
 else printf -- '---\ntitle: Overview\n---\n' > "$content/_index.md"; fi
 
 # Latest updates: per-PR entries with week and (online) PR number.
@@ -103,6 +129,8 @@ for f in "$sitec"/changes/*.md; do
   [ "$base" = "_index.md" ] && { cp "$f" "$dest"; continue; }
   day=$(frontmatter_get "$f" date); day=${day:0:10}
   extra="week: \"$(iso_week "$day")\""
+  refs=$(ghrefs "$f"); [ -z "$refs" ] || extra="$extra
+ghrefs: $refs"
   if [ "${SITE_OFFLINE:-0}" != 1 ] && [ -n "$repo" ]; then
     sha=$(git -C "$project" log --diff-filter=A --format=%H -1 -- "site/content/changes/$base" 2>/dev/null || true)
     if [ -n "$sha" ]; then
@@ -111,7 +139,8 @@ for f in "$sitec"/changes/*.md; do
 pr: $pr"
     fi
   fi
-  EXTRA=$extra awk 'NR == 1 { print; next } !done && $0 == "---" { print ENVIRON["EXTRA"]; done = 1 } { print }' "$f" > "$dest"
+  EXTRA=$extra awk 'NR == 1 { print; next } !done && $0 == "---" { print ENVIRON["EXTRA"]; done = 1 } { print }' "$f" \
+    | link_github "$repo" "$project" > "$dest"
 done
 section_index "$content/updates" "Latest updates"
 
@@ -122,6 +151,7 @@ for f in "$sitec"/summaries/*.md; do
   [ -e "$f" ] || continue
   cp "$f" "$content/weeknotes/"
   [ "$(basename "$f")" = "_index.md" ] && continue
+  link_github "$repo" "$project" < "$f" > "$content/weeknotes/$(basename "$f")"
   e=$(frontmatter_get "$f" period_end)
   [ -z "$e" ] || [[ "$e" < "$latest_end" ]] || latest_end=$e
 done
@@ -145,14 +175,14 @@ fi
 guides=0; docs=0
 if [ "$ctype" != code ]; then
   guides=1; mkdir -p "$content/guides"
-  [ -d "$sitec/guides" ] && cp -R "$sitec/guides/." "$content/guides/"
+  [ -d "$sitec/guides" ] && cp -R "$sitec/guides/." "$content/guides/" && link_pages "$content/guides"
   section_index "$content/guides" Guides
 fi
 
 # Docs: hand-written pages (knowledge|both) and reference (code|both).
 has_docs=$(find "$sitec/docs" -type f -name '*.md' ! -name '_index.md' 2>/dev/null | head -1)
 if [ "$ctype" != code ] && [ -n "$has_docs" ]; then
-  docs=1; mkdir -p "$content/docs"; cp -R "$sitec/docs/." "$content/docs/"
+  docs=1; mkdir -p "$content/docs"; cp -R "$sitec/docs/." "$content/docs/"; link_pages "$content/docs"
 fi
 if [ "$ctype" != knowledge ]; then
   docs=1; mkdir -p "$content/docs/reference"
