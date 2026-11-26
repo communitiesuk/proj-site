@@ -10,27 +10,34 @@
 # Subcommands
 #   check   Derive and print the facts the workflow acts on, changing
 #           nothing: trunk=<ref>, remote=<name|none>,
-#           host=<none|github|unknown:<url>>, contention=<in-place|worktree>.
+#           host=<none|github|unknown:<url>>.
 #   begin   Name the artefact branch from its path; where a remote
 #           exists, fetch it and fast-forward the local trunk to the
-#           remote's, or stop (exit 1) creating nothing; then branch in
-#           place or into .worktrees/<branch> from the trunk, copy the small
-#           configuration files into a worktree, and print trunk=, branch=
+#           remote's, or stop (exit 1) creating nothing; then create the
+#           branch from the trunk together with its worktree at
+#           <primary checkout>/.worktrees/<branch>, always (no in-place
+#           branching), copy the small configuration files into it, and
+#           print trunk=, branch=
 #           and dir=, and include=.gitignore when the .worktrees/ ignore
 #           line was added and awaits the artefact's first commit. Makes no
 #           commit. Never stages, stashes, reverts or deletes anything in
 #           the primary checkout.
-#   land    From the artefact's checkout: refuse unless the first commit
-#           since the fork point carries Derives-From or a Clarifies edit
-#           to an existing ADR; hand a decision (a new file under docs/adr/,
-#           or a Revises trailer) to a human via the host's pull request;
+#   land    From the artefact's worktree (refusing the primary checkout,
+#           exit 2): refuse unless the first commit
+#           since the fork point carries Derives-From, a Clarifies or an
+#           Abandons naming a path that existed at the fork point, or a
+#           non-empty Origin (a root's provenance, not checked as a path);
+#           refuse a revised or abandoned ADR's branch until each durable
+#           downstream carries a verdict; hand a decision (a new file under
+#           docs/adr/, a Revises trailer, or an Abandons naming a file under
+#           docs/adr/) to a human via the host's pull request;
 #           print every outstanding deferral now due, and refuse when this
 #           branch's own trigger is what makes one due unless it also
 #           carries a discharge verdict; otherwise merge with two parents,
 #           locally where there is no remote and through hosts/<name>.sh
 #           otherwise, bringing the local trunk current after a host merge
 #           or noting why not; then clean up, leaving the primary checkout
-#           where it was, or on the trunk where the work was in place.
+#           where it was, always.
 #
 # Host modules live in hosts/<name>.sh beside this script. Each is an
 # executable taking one of:
@@ -40,6 +47,11 @@
 #                       description; its title is the first commit's
 #                       subject, and it carries every commit's message and
 #                       body
+#   checks <branch> <trunk>
+#                       wait for the status checks the trunk requires to
+#                       pass on that pull request: 0 none required or all
+#                       passed; 1 one failed; 4 one still pending when the
+#                       wait ran out
 #   merge <branch>      merge it with a merge commit, never squash or rebase
 #   settings            print whether the host allows squash and rebase merges
 #
@@ -48,8 +60,9 @@
 #      merged and was cleaned up
 #   1  stopped with a report: begin could not fetch or fast-forward the
 #      local trunk, and created no branch; or land's host command was
-#      missing, failed or refused, the branch is pushed and everything else
-#      is left as it was
+#      missing, failed or refused, or a check the trunk requires failed or
+#      had not passed in time, the branch is pushed and everything else is
+#      left as it was
 #   2  usage or a precondition failed: nothing was changed
 #   3  stopped by design: the branch is a decision; it is pushed and
 #      proposed, and a human merges it
@@ -71,7 +84,7 @@ die() {
 
 # check — derive the facts the workflow acts on; change nothing.
 #
-# Prints four lines to stdout:
+# Prints three lines to stdout:
 #   trunk=<ref>        the first of: a local dev branch, a local develop
 #                      branch, the branch refs/remotes/origin/HEAD names
 #   remote=<name|none> none when `git remote` prints nothing; origin when
@@ -79,8 +92,6 @@ die() {
 #   host=<...>         none when there is no remote; github when the
 #                      remote's URL names github.com in https or ssh
 #                      form; otherwise unknown:<url>
-#   contention=<...>   in-place when HEAD is the trunk and the working
-#                      tree is clean; worktree otherwise
 # Exits 2, printing which refs were looked for, when no rung of the
 # trunk ladder resolves; exits 2 naming the candidates when there is
 # more than one remote and none is origin. Reads configuration keys and
@@ -115,22 +126,13 @@ derive_host() {
   esac
 }
 
-derive_contention() {
-  local trunk="$1"
-  if [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "$trunk" ] && [ -z "$(git status --porcelain)" ]; then
-    echo in-place
-  else
-    echo worktree
-  fi
-}
-
 cmd_check() {
   git rev-parse --git-dir >/dev/null 2>&1 || die 2 "not inside a git repository"
   local trunk remote host
   trunk="$(derive_trunk)" || die 2 "no trunk resolves: looked for refs/heads/dev, refs/heads/develop and the branch named by refs/remotes/origin/HEAD; this repository is not set up for the workflow (git remote set-head origin -a satisfies it where a remote exists)"
   remote="$(derive_remote)" || die 2 "more than one remote and none named origin: $(git remote | tr '\n' ' ')— say which by naming it origin"
   host="$(derive_host "$remote")"
-  printf 'trunk=%s\nremote=%s\nhost=%s\ncontention=%s\n' "$trunk" "$remote" "$host" "$(derive_contention "$trunk")"
+  printf 'trunk=%s\nremote=%s\nhost=%s\n' "$trunk" "$remote" "$host"
 }
 # begin <artefact-path> [--slug <slug>] — start the artefact's branch.
 #
@@ -146,16 +148,22 @@ cmd_check() {
 # cannot (the fetch fails, the local trunk has commits the remote lacks,
 # the primary checkout is on the trunk with tracked changes, or the trunk
 # is checked out in another worktree), exits 1 with sync_trunk's report
-# and creates no branch and no worktree. Then, when contention is
-# in-place, creates the branch from the trunk in the primary checkout and
-# switches to it. Otherwise creates
-# .worktrees/<branch> from the trunk, copies the untracked files under
+# and creates no branch and no worktree. Then creates the branch from the
+# trunk together with its worktree at .worktrees/<branch> under the
+# primary checkout, always: there is no in-place branching. Strays (an
+# untracked file), a dirty primary checkout or a primary checkout parked
+# off the trunk do not change where the branch goes, though sync_trunk's
+# stops above apply unchanged. Run from inside another worktree, it still
+# puts the new one under the primary checkout, never nested in that
+# worktree. Copies the untracked files under
 # .claude/, .env and .mcp.json into it where they exist and never .venv/
 # or node_modules/, and, when the repository ignores no .worktrees/,
 # appends that line to the worktree's .gitignore and leaves it
 # uncommitted: it is bookkeeping and rides on the artefact's first
-# commit, which carries the trailer. Makes no commit. Never stages,
-# stashes, reverts or deletes anything in the primary checkout.
+# commit, which carries the trailer. Makes no commit. Never touches the
+# primary checkout's files or HEAD (sync_trunk's fast-forward of the
+# trunk excepted): never switches, stages, stashes, reverts or deletes
+# anything there.
 #
 # Prints trunk=<ref>, branch=<name> and dir=<absolute path to work in>,
 # then include=.gitignore when it added the ignore line, naming the file
@@ -205,7 +213,7 @@ copy_if_present() {
 # resolve the sibling history script and print its downstream: section under
 # a worklist: header, one indented path per line. Advisory — skips silently
 # when PATH is not an on-trunk ADR or the history script is absent, and never
-# changes begin's exit code. Invoked at both of cmd_begin's exit points.
+# changes begin's exit code. Invoked at the end of cmd_begin.
 begin_worklist() {
   local path="$1" trunk="$2"
   case "$path" in docs/adr/*.md) ;; *) return 0 ;; esac
@@ -229,25 +237,17 @@ cmd_begin() {
   [ -n "$path" ] || die 2 "usage: begin <artefact-path> [--slug <slug>]"
   local branch
   branch="$(branch_name_for "$path" "$slug")" || die 2 "$path is governed by no skill: name the branch with --slug <slug> (becomes chore-<slug>)"
-  local facts trunk contention root
+  local facts trunk root
   facts="$(cmd_check)" || exit $?
   trunk="${facts#*trunk=}"; trunk="${trunk%%
 *}"
-  contention="${facts#*contention=}"; contention="${contention%%
-*}"
-  root="$(git rev-parse --show-toplevel)"
+  root="$(primary_checkout)"
   git rev-parse --verify --quiet "refs/heads/$branch" >/dev/null && die 2 "branch $branch already exists"
   local remote msg
   remote="${facts#*remote=}"; remote="${remote%%
 *}"
   if [ "$remote" != none ]; then
-    msg="$(sync_trunk "$(primary_checkout)" "$remote" "$trunk")" || die 1 "$msg; no branch created"
-  fi
-  if [ "$contention" = in-place ]; then
-    git switch -q -c "$branch" "$trunk" || die 2 "could not create $branch"
-    printf 'trunk=%s\nbranch=%s\ndir=%s\n' "$trunk" "$branch" "$root"
-    begin_worklist "$path" "$trunk"
-    return 0
+    msg="$(sync_trunk "$root" "$remote" "$trunk")" || die 1 "$msg; no branch created"
   fi
   local wt="$root/.worktrees/$branch"
   git worktree add -q "$wt" -b "$branch" "$trunk" || die 2 "could not create worktree $wt"
@@ -263,28 +263,40 @@ cmd_begin() {
 }
 # land — integrate the artefact branch, or stop and say why.
 #
-# Run from inside the artefact's checkout, primary or worktree. In order:
-#   1. Refuses (exit 2) when HEAD is the trunk, tracked files have
-#      uncommitted changes (untracked files are not the artefact and may
-#      be a worktree's installed dependencies), or there is nothing since
-#      the fork point.
+# Run from inside the artefact's worktree, .worktrees/<branch>. In order:
+#   1. Refuses (exit 2, nothing changed) when HEAD is the trunk, when the
+#      artefact's checkout is the primary checkout (artefact branches live
+#      in .worktrees/<branch>, and land runs from there), when tracked
+#      files have uncommitted changes (untracked files are not the
+#      artefact and may be a worktree's installed dependencies), or when
+#      there is nothing since the fork point.
 #   2. Decides whether the branch is a decision: a commit since the fork
-#      point carries Revises, or the diff against the trunk adds a file
+#      point carries Revises, a commit since the fork point carries
+#      Abandons naming a file under docs/adr/ (abandoning an ADR changes
+#      a decision, ADR 0003), or the diff against the trunk adds a file
 #      under docs/adr/. A decision roots or revises the artefact graph, so
 #      it needs no Derives-From. Every other artefact derives from an
 #      upstream, so its first commit since the fork point must carry a
 #      Derives-From trailer; landing refuses (exit 2) when a non-decision
-#      does not. A Clarifies edit to an existing ADR is the exception: not
-#      a decision, but needing no Derives-From either, since it adds a
-#      self-edge from the ADR to itself rather than deriving from an
-#      upstream (ADR 0004). Any Derives-From or Clarifies that is present
-#      must be repository-relative (not starting with / or ./), or landing
-#      refuses (exit 2).
+#      does not. Three exceptions need no Derives-From (ADR 0004): a
+#      Clarifies edit to any artefact already in the tree, a self-edge
+#      whose every value must name a path that existed at the fork point;
+#      an Abandons removal of a whole artefact, whose every value on the
+#      first commit must likewise be repository-relative and name a path
+#      that existed at the fork point, or landing refuses (exit 2); and a
+#      root carrying Origin, whose value is provenance, not a path, and
+#      must not be empty. Any Derives-From, Clarifies or first-commit
+#      Abandons that is present must be repository-relative (not starting
+#      with / or ./), and any Origin present must be non-empty, or landing
+#      refuses (exit 2). Origin joins neither the trigger nor the verdict
+#      pool; Abandons joins the trigger pools of 2a and 2c, never the
+#      verdict pool.
 #   2a. The blast-radius auto-defer (ADR 0011), run inside the same
 #      Revises guard as 2b and strictly before it, immediately after the
 #      hoisted verdict-pool computation (reconciles_confirms, verdicts).
 #      Iterates the same sort -u set of distinct Revises values 2b
-#      computes, calling history downstream <value> and filtering to
+#      computes (Revises values only: an abandoned ADR has no plan to come,
+#      so it gets no auto-defer, ADR 0011), calling history downstream <value> and filtering to
 #      in-tree with the same git cat-file -e "HEAD:$d" test 2b uses — the
 #      identical blast radius, not a second computation of it. For each
 #      in-tree downstream d of a given value, skip it (no auto-defer)
@@ -293,11 +305,15 @@ cmd_begin() {
 #      step never overwrites), when it is already slated for auto-defer
 #      against an earlier value in this same pass (a d named by two
 #      revised ADRs' downstream sets is cited against the first value in
-#      sort order once, never duplicated), or when d is the target of an
-#      outstanding deferral (history outstanding-deferrals) whose origin
-#      is in this branch's full trigger pool — the same
-#      Reconciles/Revises/Derives-From values over trunk..HEAD that 2c
-#      computes, not only this branch's Revises values. That d is
+#      sort order once, never duplicated), when d is in the downstream of
+#      an ADR this branch abandons (an Abandons value under docs/adr/),
+#      even one shared with a revised ADR — a choice, reading ADR 0011's
+#      "its abandoning branch judges each downstream" as covering it,
+#      since nothing upstream settles a shared one — or when d is the
+#      target of an outstanding deferral (history outstanding-deferrals)
+#      whose origin is in this branch's full trigger pool — the same
+#      Reconciles/Revises/Derives-From/Abandons values over trunk..HEAD
+#      that 2c computes, not only this branch's Revises values. That d is
 #      already owed a discharge by this branch's own trigger pool — the
 #      discharge-due check (2c) and the reviser own it, not a fresh
 #      auto-defer: an auto-defer Defers: there would re-cite the same
@@ -315,7 +331,7 @@ cmd_begin() {
 #      the hoisted computation already runs, so both 2b and 2c see the
 #      new trailers through the one existing code path, with no second
 #      one added. The auto-defer commit carries only Defers: trailers,
-#      never Reconciles/Revises/Derives-From, so 2c's branch-local
+#      never Reconciles/Revises/Derives-From/Abandons, so 2c's branch-local
 #      trigger pool is unaffected by the commit itself; every other
 #      auto-deferred item becomes a new outstanding deferral, picked up
 #      later, unmodified, by history outstanding-deferrals and 2c when
@@ -336,7 +352,16 @@ cmd_begin() {
 #      in-tree downstream carrying no verdict — in practice, only the one
 #      case 2a's Remainder exclusion leaves standing: a downstream
 #      already owed a discharge by this branch's own Revises (2a excludes
-#      it rather than auto-deferring it). The gate consumes the sibling
+#      it rather than auto-deferring it). It also runs for each distinct
+#      Abandons value under docs/adr/ (an ADR abandoned outright, which
+#      2a never auto-defers, so here the gate is the primary action): the
+#      same history downstream walk, filtered instead to paths in the
+#      fork point's tree (git cat-file -e "$fork:$d"), so a skill or code
+#      deleted for the abandoned ADR still needs Reconciles:, less every
+#      path this branch carries Abandons for, so a plan removed with
+#      Abandons needs none. Both walks' missing paths are named in the one
+#      refusal. The gate is guarded by either set being non-empty. The
+#      gate consumes the sibling
 #      history skill's script (../../history/scripts/history.sh from
 #      script_dir) and refuses (exit 2) naming the resolved path when it
 #      is not a regular file — a hard stop, so an incomplete revision
@@ -346,9 +371,10 @@ cmd_begin() {
 #      checked, never the truth of the claim. A decision is then pushed and
 #      proposed through the host module, then exit 3 with a report naming
 #      the pull request and, one "  artefact: <url>" line each, a link to
-#      every ADR the decision adds or revises as it stands on the branch
-#      (the host module's link verb), so the human can read it before
-#      merging: a human merges it. With no remote a decision
+#      every ADR the decision adds or revises as it stands on the branch,
+#      and every ADR it abandons as it stands on the trunk (the host
+#      module's link verb, given the trunk for the branch), so the human
+#      can read it before merging: a human merges it. With no remote a decision
 #      cannot be proposed: exit 3, branch left in place.
 #   2c. The discharge-due check (ADR 0012), run immediately after 2b and
 #      still before anything is pushed. The history-script-executable
@@ -356,13 +382,14 @@ cmd_begin() {
 #      in 2b are hoisted out of the Revises guard and run unconditionally
 #      on every land, since this check needs them whether or not the
 #      branch revises an ADR; the 0011 downstream-walk itself stays
-#      guarded by Revises, now reading the hoisted pool rather than
+#      guarded by Revises or an Abandons naming an ADR, now reading the hoisted pool rather than
 #      recomputing it. Then: consume history outstanding-deferrals once,
 #      and echo every record it reports due: true under a due-deferrals:
 #      header (D:/origin:/condition: per record) — advisory, never
 #      changes the exit code. Separately, read this branch's own
-#      trunk..HEAD trigger pool (Reconciles/Revises/Derives-From
-#      valueonly; unlike the verdict reads, no token-stripping, since
+#      trunk..HEAD trigger pool (Reconciles/Revises/Derives-From/Abandons
+#      valueonly — an Abandons naming the origin makes its deferral due,
+#      ADR 0010; unlike the verdict reads, no token-stripping, since
 #      these trailers carry only a path). A record is this branch's to
 #      discharge only when its origin matches (grep -qxF) a value in that
 #      pool AND the query reports it due: false — a pool match already
@@ -377,17 +404,22 @@ cmd_begin() {
 #      or a fresh Defers: D O2 <condition> whose O2 differs from O1
 #      (string compare) and is currently unmet — no commit anywhere on
 #      trunk (a full scan, not trunk..HEAD) carries a
-#      Reconciles/Revises/Derives-From trailer valued O2, and O2 is not
+#      Reconciles/Revises/Derives-From/Abandons trailer valued O2, and O2 is not
 #      itself in this branch's own trigger pool. Refuse (exit 2) naming
 #      every triggered D lacking a valid escape: a D with no verdict at
 #      all under "this branch triggers a due deferral with no discharge
 #      verdict for:", and a D whose only verdict is a Defers: failing
 #      either check under "this branch triggers a due deferral with an
 #      invalid re-defer (condition unchanged or already met) for:".
-#   3. Otherwise, by host. none: from the primary checkout with the trunk
-#      checked out (switching to it first when the work was in place),
-#      git merge --no-ff. A host module: push, propose, then merge, both
-#      from the primary checkout; afterwards, whether or not the primary
+#   3. Otherwise, by host. none: git merge --no-ff in the primary
+#      checkout, which must have the trunk checked out; it is never
+#      switched. A host module: push, propose, wait for the checks the
+#      trunk requires, then merge, all from the primary checkout. A
+#      required check that fails stops land, exit 1, naming the pull
+#      request and gh pr checks; one still pending when the wait runs out
+#      stops it the same way, and running land again once the checks pass
+#      picks up the open pull request and merges it. Neither gives the
+#      permission hint, since nothing was refused. After a merge, whether or not the primary
 #      checkout is on the trunk, bring the local trunk current with
 #      sync_trunk (fast-forwarded in place where the primary is on it, or
 #      moved by ref where it is not), and read the merge commit from the
@@ -409,8 +441,8 @@ cmd_begin() {
 #      remove the worktree (--force, because it holds the untracked config
 #      files begin copied in), delete the local branch, delete the remote
 #      branch where a remote exists. The primary checkout is left where it
-#      was: a parked primary stays on its branch. Where the work was in
-#      place the checkout was switched to the trunk in 3. With no remote,
+#      was, always: a parked primary stays on its branch, and land never
+#      switches it. With no remote,
 #      where the primary checkout is on neither the trunk nor the branch,
 #      no merge can run there: exit 1 with a report.
 # sync_trunk PRIMARY REMOTE TRUNK — bring the local trunk current.
@@ -457,11 +489,14 @@ primary_checkout() { physical "$(git worktree list --porcelain | awk 'NR==1 && $
 script_dir() { cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P; }
 physical() { (cd "$1" 2>/dev/null && pwd -P); }
 
-# stop CODE SUMMARY URL COMMAND BRANCH REMOTE PRIMARY WT [LINKS] — report and
-# exit. LINKS, optional, is newline-separated URLs, each printed after the
-# pull request as "  artefact: <url>".
+# stop CODE SUMMARY URL COMMAND BRANCH REMOTE PRIMARY WT [LINKS [ADVICE]] —
+# report and exit. LINKS, optional, is newline-separated URLs, each printed
+# after the pull request as "  artefact: <url>". ADVICE, optional, replaces
+# the refusal's permission hint as the last line, for a stop that nothing
+# refused. The state line reports the primary checkout where it was, since
+# land never moves it.
 stop() {
-  local code="$1" summary="$2" url="$3" command="$4" branch="$5" remote="$6" primary="$7" wt="$8" links="${9:-}"
+  local code="$1" summary="$2" url="$3" command="$4" branch="$5" remote="$6" primary="$7" wt="$8" links="${9:-}" advice="${10:-}"
   printf 'git-workflow: stopped: %s\n' "$summary"
   [ -n "$url" ] && printf '  pull request: %s\n' "$url"
   [ -n "$links" ] && printf '%s\n' "$links" | sed '/^$/d; s/^/  artefact: /'
@@ -472,12 +507,17 @@ stop() {
     "$branch" "$pushed" "$([ -n "$wt" ] && echo "worktree $wt kept" || echo "no worktree")" "$(git -C "$primary" rev-parse --abbrev-ref HEAD)"
   if [ "$code" = 3 ]; then
     printf '  this branch is a decision: a human merges it.\n'
+  elif [ -n "$advice" ]; then
+    printf '  %s\n' "$advice"
   else
-    printf '  to let future artefacts land unattended, allow the merge command in the harness permission settings, for example Bash(gh pr merge *).\n'
+    printf '  the merge was refused; landing it is now the human'"'"'s decision. (If they want artefacts to land unattended, they can allow it in the harness permission settings, for example Bash(gh pr merge *).)\n'
   fi
   exit "$code"
 }
 
+# cleanup_after_merge PRIMARY WT BRANCH TRUNK [REMOTE] — after a merge, from
+# PRIMARY: remove the artefact's worktree WT, delete BRANCH locally and on
+# REMOTE. Never switches PRIMARY: it is left where it was, always.
 cleanup_after_merge() {
   local primary="$1" wt="$2" branch="$3" remote="${5:-none}"
   # chdir into the primary checkout first: removing $wt must not pull the
@@ -502,36 +542,71 @@ cmd_land() {
   host="$(derive_host "$remote")"
   branch="$(git rev-parse --abbrev-ref HEAD)"
   [ "$branch" != "$trunk" ] || die 2 "HEAD is the trunk ($trunk): land runs from the artefact branch"
+  local primary wt
+  primary="$(primary_checkout)"
+  wt="$(physical "$(git rev-parse --show-toplevel)")"
+  [ "$wt" != "$primary" ] || die 2 "this is the primary checkout: artefact branches live in .worktrees/<branch>, and land runs from there"
   [ -z "$(git status --porcelain --untracked-files=no)" ] || die 2 "working tree is dirty: tracked files have uncommitted changes; commit or discard before landing"
   local first
   first="$(git rev-list --reverse "$trunk..HEAD" | head -1)"
   [ -n "$first" ] || die 2 "nothing to land: no commits since the fork point from $trunk"
   local decision=0
   [ -n "$(git log --format='%(trailers:key=Revises,valueonly)' "$trunk..HEAD" | sed '/^$/d')" ] && decision=1
+  # Abandons values on trunk..HEAD, read once; those naming an ADR make
+  # the branch a decision (abandoning an ADR changes a decision, ADR 0003).
+  local abandons abandons_adr
+  abandons="$(git log --format='%(trailers:key=Abandons,valueonly)' "$trunk..HEAD" | sed '/^$/d')"
+  abandons_adr="$(printf '%s\n' "$abandons" | awk '/^docs\/adr\// {print}' | sort -u)"
+  [ -n "$abandons_adr" ] && decision=1
   git diff --name-status "$trunk...HEAD" | grep -qE '^A[[:space:]]+docs/adr/' && decision=1
 
   # A decision roots or revises the artefact graph and needs no
-  # Derives-From; a Clarifies edit to an existing ADR adds a self-edge
-  # and needs none either; every other artefact derives from an upstream,
-  # so its first commit must carry one. A Derives-From or Clarifies that
-  # is present is validated as repository-relative either way.
-  local trailer clarifies
+  # Derives-From; a Clarifies edit to an artefact already in the tree
+  # (each value present at the fork point) adds a self-edge and needs
+  # none; an Abandons removal of a whole artefact (each first-commit
+  # value present at the fork point) needs none; a root carrying a
+  # non-empty Origin needs none; every other artefact derives from an
+  # upstream, so its first commit must carry one. A Derives-From,
+  # Clarifies or first-commit Abandons present is validated as
+  # repository-relative, and an Origin present as non-empty, either way.
+  local trailer clarifies first_abandons origin_keys origin fork="" value
   trailer="$(git log -1 --format='%(trailers:key=Derives-From,valueonly)' "$first" | sed '/^$/d')"
   clarifies="$(git log -1 --format='%(trailers:key=Clarifies,valueonly)' "$first" | sed '/^$/d')"
+  first_abandons="$(git log -1 --format='%(trailers:key=Abandons,valueonly)' "$first" | sed '/^$/d')"
+  # Read Origin with its key, so a present key with an empty value is seen.
+  origin_keys="$(git log -1 --format='%(trailers:key=Origin)' "$first" | sed '/^$/d')"
+  origin="$(git log -1 --format='%(trailers:key=Origin,valueonly)' "$first" | sed '/^[[:space:]]*$/d')"
+  if [ -n "$origin_keys" ] && [ -z "$origin" ]; then
+    die 2 "Origin must not be empty: the first commit since the fork point ($(git rev-parse --short "$first")) carries Origin: with no provenance"
+  fi
+  # The fork point: needed by Clarifies and by any Abandons on the branch
+  # (the first commit's validation below, and 2b's abandoned-ADR walk).
+  if [ -n "$clarifies" ] || [ -n "$abandons" ]; then fork="$(git merge-base "$trunk" HEAD)"; fi
   if [ -n "$clarifies" ]; then
     printf '%s\n' "$clarifies" | grep -qE '^(\./|/)' && die 2 "Clarifies must be a repository-relative path, got: $clarifies"
+    while IFS= read -r value; do
+      git cat-file -e "$fork:$value" 2>/dev/null || die 2 "Clarifies: $value does not exist at the fork point $(git rev-parse --short "$fork")"
+    done <<< "$clarifies"
+  fi
+  if [ -n "$first_abandons" ]; then
+    printf '%s\n' "$first_abandons" | grep -qE '^(\./|/)' && die 2 "Abandons must be a repository-relative path, got: $first_abandons"
+    while IFS= read -r value; do
+      git cat-file -e "$fork:$value" 2>/dev/null || die 2 "Abandons: $value does not exist at the fork point $(git rev-parse --short "$fork")"
+    done <<< "$first_abandons"
   fi
   if [ -z "$trailer" ]; then
-    { [ "$decision" -eq 1 ] || [ -n "$clarifies" ]; } || die 2 "the first commit since the fork point ($(git rev-parse --short "$first")) carries no Derives-From trailer"
+    { [ "$decision" -eq 1 ] || [ -n "$clarifies" ] || [ -n "$first_abandons" ] || [ -n "$origin" ]; } || die 2 "the first commit since the fork point ($(git rev-parse --short "$first")) carries no Derives-From trailer, nor a Clarifies, Abandons or Origin"
   else
     printf '%s\n' "$trailer" | grep -qE '^(\./|/)' && die 2 "Derives-From must be a repository-relative path, got: $trailer"
   fi
 
   # The verdict-completeness gate (ADR 0011). A Revises branch revises an
-  # accepted ADR; every durable, in-tree downstream of that ADR must carry
-  # a verdict. Runs here, before the push, so an incomplete revision never
-  # reaches the host. New-ADR decisions have no downstream to reconcile and
-  # must not trigger it, so the gate is guarded by Revises being present.
+  # accepted ADR, and an Abandons naming an ADR abandons one outright;
+  # every durable downstream of that ADR must carry a verdict. Runs here,
+  # before the push, so an incomplete revision never reaches the host.
+  # New-ADR decisions have no downstream to reconcile and must not trigger
+  # it, so the gate is guarded by Revises, or an Abandons naming an ADR,
+  # being present.
   local revises
   revises="$(git log --format='%(trailers:key=Revises,valueonly)' "$trunk..HEAD" | sed '/^$/d')"
 
@@ -558,17 +633,32 @@ cmd_land() {
     git log --format='%(trailers:key=Defers,valueonly)' "$trunk..HEAD" | sed '/^$/d' | awk '{print $1}'
   )"
 
+  # The whole downstream of every ADR this branch abandons, unfiltered: 2a
+  # never slates one, and 2b walks them against the fork point's tree.
+  local abandoned_downstream=""
+  if [ -n "$abandons_adr" ]; then
+    abandoned_downstream="$(
+      while IFS= read -r value; do
+        [ -n "$value" ] || continue
+        bash "$hist" downstream "$value" | awk '/^downstream:$/{f=1;next} /^revises:$/{f=0} f{print}'
+      done <<< "$abandons_adr"
+    )"
+  fi
+
   if [ -n "$revises" ]; then
     # The blast-radius auto-defer (ADR 0011, land doc-comment 2a), run
     # strictly before the verdict-completeness gate below (2b). Reuses
     # the same sort -u Revises set and the same git cat-file -e in-tree
     # filter 2b uses below, so it walks the identical blast radius, not a
-    # second computation of it.
+    # second computation of it. Never slates a downstream of an ADR this
+    # branch abandons, even one shared with a revised ADR: the abandoning
+    # branch judges each one (ADR 0011).
     local autodefer_pool outstanding_autodefer value d slated="" defer_trailers=""
     autodefer_pool="$(
       git log --format='%(trailers:key=Reconciles,valueonly)'   "$trunk..HEAD" | sed '/^$/d'
       git log --format='%(trailers:key=Revises,valueonly)'      "$trunk..HEAD" | sed '/^$/d'
       git log --format='%(trailers:key=Derives-From,valueonly)' "$trunk..HEAD" | sed '/^$/d'
+      printf '%s\n' "$abandons" | sed '/^$/d'
     )"
     # D<TAB>origin pairs for every outstanding deferral, due or not: 2a's
     # exclusion cares only whether the origin is in this branch's pool.
@@ -583,6 +673,7 @@ cmd_land() {
         git cat-file -e "HEAD:$d" 2>/dev/null || continue           # keep durable in-tree downstreams only
         printf '%s\n' "$verdicts" | grep -qxF "$d" && continue      # an explicit verdict: never overwritten
         printf '%s\n' "$slated"   | grep -qxF "$d" && continue      # already slated against an earlier value this pass
+        printf '%s\n' "$abandoned_downstream" | grep -qxF "$d" && continue   # an abandoned ADR's: its branch judges it
         local od_origin=""
         od_origin="$(printf '%s\n' "$outstanding_autodefer" | awk -F'\t' -v want="$d" '$1 == want { print $2; exit }')"
         if [ -n "$od_origin" ] && printf '%s\n' "$autodefer_pool" | grep -qxF "$od_origin"; then
@@ -610,7 +701,9 @@ cmd_land() {
         git log --format='%(trailers:key=Defers,valueonly)' "$trunk..HEAD" | sed '/^$/d' | awk '{print $1}'
       )"
     fi
+  fi
 
+  if [ -n "$revises" ] || [ -n "$abandons_adr" ]; then
     local missing="" value d
     while IFS= read -r value; do
       [ -n "$value" ] || continue
@@ -624,6 +717,17 @@ cmd_land() {
 "
       done < <(bash "$hist" downstream "$value" | awk '/^downstream:$/{f=1;next} /^revises:$/{f=0} f{print}')
     done < <(printf '%s\n' "$revises" | sort -u)
+    # An abandoned ADR's downstream, filtered to the fork point's tree (a
+    # skill or code deleted for it still needs Reconciles:), less every
+    # path this branch abandons (a plan removed with Abandons needs none).
+    while IFS= read -r d; do
+      [ -n "$d" ] || continue
+      git cat-file -e "$fork:$d" 2>/dev/null || continue
+      printf '%s\n' "$abandons" | grep -qxF "$d" && continue
+      printf '%s\n' "$verdicts" | grep -qxF "$d" && continue
+      missing="$missing$d
+"
+    done <<< "$abandoned_downstream"
     if [ -n "$missing" ]; then
       die 2 "$(printf 'this revision does not account for every durable downstream; no verdict (Reconciles/Confirms/Defers) names:\n%s' "$(printf '%s' "$missing" | sort -u)")"
     fi
@@ -647,7 +751,7 @@ cmd_land() {
     }
   '
 
-  # The branch-local trigger pool: Reconciles/Revises/Derives-From
+  # The branch-local trigger pool: Reconciles/Revises/Derives-From/Abandons
   # valueonly over trunk..HEAD, no token-stripping (unlike the verdict
   # reads above, these trailers carry only a path).
   local trigger_pool
@@ -655,8 +759,9 @@ cmd_land() {
     git log --format='%(trailers:key=Reconciles,valueonly)'   "$trunk..HEAD" | sed '/^$/d'
     git log --format='%(trailers:key=Revises,valueonly)'      "$trunk..HEAD" | sed '/^$/d'
     git log --format='%(trailers:key=Derives-From,valueonly)' "$trunk..HEAD" | sed '/^$/d'
+    printf '%s\n' "$abandons" | sed '/^$/d'
   )"
-  # The same three trailer kinds, scanned over the whole of trunk's own
+  # The same four trailer kinds, scanned over the whole of trunk's own
   # history (not trunk..HEAD): what a re-defer's new origin must be absent
   # from to count as currently unmet.
   local trunk_pool
@@ -664,6 +769,7 @@ cmd_land() {
     git log --format='%(trailers:key=Reconciles,valueonly)'   "$trunk" | sed '/^$/d'
     git log --format='%(trailers:key=Revises,valueonly)'      "$trunk" | sed '/^$/d'
     git log --format='%(trailers:key=Derives-From,valueonly)' "$trunk" | sed '/^$/d'
+    git log --format='%(trailers:key=Abandons,valueonly)'     "$trunk" | sed '/^$/d'
   )"
 
   # D/origin/due triples for every outstanding deferral, tab-separated.
@@ -721,11 +827,6 @@ $(printf '%s' "$bad_redefer" | sort -u)
     die 2 "$msg"
   fi
 
-  local primary here inplace=0 wt=""
-  primary="$(primary_checkout)"
-  here="$(physical "$(git rev-parse --show-toplevel)")"
-  if [ "$here" = "$primary" ]; then inplace=1; else wt="$here"; fi
-
   local module="" url=""
   case "$host" in github) module="$(script_dir)/hosts/$host.sh" ;; esac
 
@@ -740,21 +841,21 @@ $(printf '%s' "$bad_redefer" | sort -u)
     url="$(bash "$module" propose "$branch" "$trunk")" || {
       rc=$?; [ "$rc" = 127 ] && stop 1 "gh is not on PATH; the pull request could not be opened" "" "gh pr create" "$branch" "$remote" "$primary" "$wt"
       stop 1 "the host refused to open the pull request" "" "gh pr create" "$branch" "$remote" "$primary" "$wt"; }
-    # Link every ADR the decision adds or revises, as it stands on the branch.
+    # Link every ADR the decision adds or revises, as it stands on the
+    # branch, and every ADR it abandons, as it stands on the trunk.
     local adr links=""
     for adr in $( { git diff --name-status "$trunk...HEAD" | awk '$1=="A" && $2 ~ /^docs\/adr\// {print $2}'
                     git log --format='%(trailers:key=Revises,valueonly)' "$trunk..HEAD"; } | sed '/^$/d' | sort -u); do
       links="$links$(bash "$module" link "$url" "$branch" "$adr" 2>/dev/null)"$'\n'
     done
+    for adr in $abandons_adr; do
+      links="$links$(bash "$module" link "$url" "$trunk" "$adr" 2>/dev/null)"$'\n'
+    done
     stop 3 "decision proposed; a human merges it" "$url" "" "$branch" "$remote" "$primary" "$wt" "$links"
   fi
 
   if [ "$host" = none ]; then
-    if [ "$inplace" -eq 1 ]; then
-      git switch -q "$trunk" || die 2 "could not switch the primary checkout to $trunk"
-    else
-      [ "$(git -C "$primary" rev-parse --abbrev-ref HEAD)" = "$trunk" ] || stop 1 "the primary checkout is on $(git -C "$primary" rev-parse --abbrev-ref HEAD), not the trunk $trunk, so the local merge cannot run there" "" "" "$branch" "$remote" "$primary" "$wt"
-    fi
+    [ "$(git -C "$primary" rev-parse --abbrev-ref HEAD)" = "$trunk" ] || stop 1 "the primary checkout is on $(git -C "$primary" rev-parse --abbrev-ref HEAD), not the trunk $trunk, so the local merge cannot run there" "" "" "$branch" "$remote" "$primary" "$wt"
     git -C "$primary" merge -q --no-ff -m "Merge $branch" "$branch" || die 1 "merge of $branch into $trunk failed; resolve it in the primary checkout"
     cleanup_after_merge "$primary" "$wt" "$branch" "$trunk" "$remote"
     printf 'landed %s into %s as %s\n' "$branch" "$trunk" "$(git -C "$primary" rev-parse --short "$trunk")"
@@ -770,7 +871,16 @@ $(printf '%s' "$bad_redefer" | sort -u)
   url="$(bash "$module" propose "$branch" "$trunk")" || {
     rc=$?; [ "$rc" = 127 ] && stop 1 "gh is not on PATH; the pull request could not be opened" "" "gh pr create" "$branch" "$remote" "$primary" "$wt"
     stop 1 "the host refused to open the pull request" "" "gh pr create" "$branch" "$remote" "$primary" "$wt"; }
-  if [ "$inplace" -eq 1 ]; then git switch -q "$trunk" || die 2 "could not switch the primary checkout to $trunk"; fi
+  local failing
+  failing="$( (cd "$primary" && bash "$module" checks "$branch" "$trunk") 2>&1 >/dev/null)" || {
+    rc=$?; failing="$(printf '%s' "$failing" | tr '\n' ' ' | sed 's/ *$//')"
+    case "$rc" in
+      127) stop 1 "gh is not on PATH; the pull request is open and unmerged" "$url" "gh pr checks $branch" "$branch" "$remote" "$primary" "$wt" ;;
+      4) stop 1 "the checks the trunk requires had not passed in time (still waiting: $failing); the pull request is open and unmerged" "$url" "gh pr checks $branch --watch" "$branch" "$remote" "$primary" "$wt" "" \
+           "nothing was refused: land again once the checks pass, and it merges the open pull request." ;;
+      *) stop 1 "a check the trunk requires failed ($failing); the pull request is open and unmerged" "$url" "gh pr checks $branch" "$branch" "$remote" "$primary" "$wt" "" \
+           "nothing was refused: fix the branch, commit, and land again; the open pull request is reused." ;;
+    esac; }
   (cd "$primary" && bash "$module" merge "$branch" "$trunk") || {
     rc=$?; [ "$rc" = 127 ] && stop 1 "gh is not on PATH; the pull request is open and unmerged" "$url" "gh pr merge $branch --merge --delete-branch" "$branch" "$remote" "$primary" "$wt"
     stop 1 "the merge was refused; the pull request is open and unmerged" "$url" "gh pr merge $branch --merge --delete-branch" "$branch" "$remote" "$primary" "$wt"; }

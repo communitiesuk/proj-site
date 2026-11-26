@@ -1,7 +1,7 @@
 ---
 name: git-workflow
-compatibility: "Needs Bash and git, and the host CLI (gh for GitHub) where a remote exists. No model floor: measured 2026-09-28 with the script on deepseek-v4.1-flash, evals/git-workflow-0 100/100/100 (run 01a0e7ca-2dc2-74ee-8495-8200d2acacb1) and evals/git-workflow-1 100/98/94 (run 01a0e75f-1236-727c-a8db-f848fce7eb91), against bars of 87 and 86 (plan 0005 Step 6, plan 0009)."
-description: Governs where work happens in a git repository and how it lands — branch-per-artefact, worktree isolation on contention, and integration that preserves commit structure. TRIGGER on any task about to create or modify a file in a git repository, before the first edit — a discovery note, an ADR, a plan, or code alike, all need a branch first. SKIP for read-only exploration that edits nothing, and for work already proceeding on an artefact branch this workflow created.
+compatibility: "Needs Bash and git, and the host CLI (gh for GitHub) where a remote exists. No model floor: measured 2026-11-17 with the script on deepseek-v4.1-flash, evals/git-workflow-0 100/100/100 (run 01a1ea89-853a-7369-a60d-1396150f9718) and evals/git-workflow-1 100/100/99 (run 01a1ea89-8626-7546-acee-dbc7d2c04d33), against bars of 87 and 86 (plan 0005 Step 6, plan 0009, plan 0024)."
+description: Governs where work happens in a git repository and how it lands — branch-per-artefact, a worktree for every artefact, and integration that preserves commit structure. TRIGGER on any task about to create or modify a file in a git repository, before the first edit — a discovery note, an ADR, a plan, or code alike, all need a branch first. SKIP for read-only exploration that edits nothing, and for work already proceeding on an artefact branch this workflow created.
 ---
 # Git workflow
 
@@ -25,7 +25,7 @@ It needs git, and the host's command-line tool (`gh` for GitHub) where the repos
 bash "$SKILL_DIR/scripts/git-workflow.sh" begin <artefact-path>          # or --slug <slug> for work no skill governs
 ```
 
-It prints `trunk=`, `branch=` and `dir=`. Work in `dir=` and nowhere else. It derives the trunk, isolates into a worktree when the checkout is not on the trunk or is dirty, names the branch from the path, copies the small configuration files, and ignores `.worktrees/`. `begin` also brings the local trunk current, or stops with a report; when it exits 1, relay the report in full and do not create the branch by hand. When it prints `include=<file>`, it has left that file changed and uncommitted: include it in the artefact's first commit. You have not begun the deliverable until it has run; if you are editing and cannot name the branch you are on, stop and run it.
+It prints `trunk=`, `branch=` and `dir=`. Work in `dir=` and nowhere else, never in the primary checkout. It derives the trunk, names the branch from the path, creates the branch together with its worktree at `.worktrees/<branch>`, copies the small configuration files, and ignores `.worktrees/`. `begin` also brings the local trunk current, or stops with a report; when it exits 1, relay the report in full and do not create the branch by hand. When it prints `include=<file>`, it has left that file changed and uncommitted: include it in the artefact's first commit. You have not begun the deliverable until it has run; if you are editing and cannot name the branch you are on, stop and run it.
 
 **When the governing skill says the artefact is complete**, from inside `dir=`, with everything committed:
 
@@ -33,10 +33,13 @@ It prints `trunk=`, `branch=` and `dir=`. Work in `dir=` and nowhere else. It de
 bash "$SKILL_DIR/scripts/git-workflow.sh" land
 ```
 
-- **0**: it merged with two parents, cleaned up, and left the primary checkout where it was, or on the trunk where the work was in place, and the local trunk is current or a note says why not. Report the merge it printed.
-- **3**: the branch adds an ADR or carries `Revises`, so it is a decision: it is pushed and proposed, and a human merges it. Say so, give the pull request and each `artefact:` link it printed (the ADR as it stands on the branch, for the human to read before merging), and stop.
+On a host whose trunk requires status checks, `land` waits for them before it merges, for up to `GIT_WORKFLOW_CHECKS_TIMEOUT` seconds (default 300), so give the command a tool timeout longer than that.
+
+- **0**: it merged with two parents, cleaned up, and left the primary checkout where it was, and the local trunk is current or a note says why not. Report the merge it printed.
+- **3**: the branch adds an ADR, carries `Revises`, or carries `Abandons` naming an ADR, so it is a decision: it is pushed and proposed, and a human merges it. Say so, give the pull request and each `artefact:` link it printed (the ADR as it stands on the branch, for the human to read before merging, or, for an abandoned ADR, as it stands on the trunk), and stop.
 - **1**: a host command was missing, failed or refused. Relay the report it printed in full: the pull request if one was opened, the command, the state left behind, and the permission hint. Do not merge locally, do not clean up, and do not describe the artefact as landed.
-- **2**: a precondition failed, usually the trailer on the first commit or a dirty tree. Fix it and run `land` again.
+  A check the trunk requires that failed, or had not passed when the wait ran out, also exits 1, with no permission hint: nothing was refused. For a failure, fix the branch, commit, and run `land` again; for a timeout, run `land` again once the checks pass. Either way the open pull request is reused.
+- **2**: a precondition failed, usually the trailer on the first commit, a dirty tree, or `land` run from the primary checkout rather than the artefact's worktree. Fix it and run `land` again from `dir=`.
 
 Between the two moments, commit as the governing skill directs (Rule 3), and put the trailers where Rule 9 says.
 
@@ -54,7 +57,7 @@ An **artefact is what one skill produces in one invocation**:
 | `test-first-workflow` | one working code change |
 | `skill-forge` | one skill |
 
-**This skill never defines "artefact" itself.** The governing skill already defines its own boundaries and exit criteria. Do not invent a boundary here, and do not split or merge an artefact because it would make the branching tidier. Work governed by no skill is still an artefact and still gets its own branch, named with `--slug`.
+**This skill never defines "artefact" itself.** The governing skill already defines its own boundaries and exit criteria. Do not invent a boundary here, and do not split or merge an artefact because it would make the branching tidier. Work governed by no skill is still an artefact and still gets its own branch, named with `--slug`. `facilitated-discovery` governs a discovery note whatever its input: a conversation, a seed, source material, or an experiment.
 
 ### Rule 3 — Commit cadence is delegated
 
@@ -84,17 +87,18 @@ Artefacts form a graph — a plan derives from an ADR, an ADR from a discovery n
 | --- | --- | --- |
 | `Derives-From:` | establishes that an artefact derives from another: the first commit on the artefact's branch, or a later commit that re-points it | path of the upstream artefact; one trailer per direct upstream |
 | `Revises:` | changes what an accepted ADR decides | path of the ADR |
-| `Clarifies:` | makes a non-revising edit to an existing ADR (typo, citation, metadata, or an uncaught cross-reference): a self-edge, as `Revises` is on an in-place revision | path of the ADR edited |
-| `Consumed-By:` | removes a discovery note | path of the ADR it informed |
+| `Origin:` | adds a root: the first commit, other than a decision's, that adds an artefact with no upstream in the repository | its provenance: in words, such as the conversation or seed a note came from, or as a pinned `<owner>/<repo>@<rev>[:<path>]` |
+| `Clarifies:` | edits in place an artefact already in the tree: for a discovery note or source material any edit; for any other artefact an edit changing no decision and no behaviour (typo, citation, metadata, or an uncaught cross-reference): a self-edge, as `Revises` is on an in-place revision | path of the artefact edited |
+| `Consumed-By:` | removes a consumed artefact: a discovery note, or source material | path of what it informed; one trailer per artefact informed |
 | `Completes:` | removes a plan whose work is done | path of the plan |
-| `Abandons:` | removes a plan whose work will not be done | path of the plan |
-| `Reconciles:` | revises a durable downstream to match the changed decision | path of that downstream |
+| `Abandons:` | removes a whole artefact, as if it had never been: an ADR whose decision is reversed outright, a plan whose work will not be done, a discovery note that informs no ADR, or source material that informed no note | path of the artefact |
+| `Reconciles:` | revises a durable downstream to match the changed decision, or deletes a skill or code existing only for an abandoned ADR | path of that downstream |
 | `Confirms:` | examines a durable downstream and finds it still correct | path of that downstream |
 | `Defers:` | defers reconciling a durable downstream artefact, blocked on named other work | path of that downstream artefact; carries its named blocking condition |
 
-Values are repository-relative paths, in the trailer block at the end of the message, one per line in `Key: value` form — never in prose, which `git interpret-trailers` cannot see. **`Derives-From` sits on the first commit of the artefact's branch, whatever that commit contains**, and names direct upstreams only: a skill produced by a plan step names the plan, not the ADR behind it. Before the first commit, ask what this artefact was produced from and write the path down; `land` refuses a branch whose first commit lacks it, unless the branch is a decision or its first commit carries `Clarifies`, which `land` sends direct to trunk with no human pull request. **The body carries the reason**: a `Revises`, `Clarifies`, `Abandons` or deleting commit says what changed and why, in sentences.
+Values are repository-relative paths, except `Origin`'s and the condition `Defers` carries, in the trailer block at the end of the message, one per line in `Key: value` form — never in prose, which `git interpret-trailers` cannot see. **`Derives-From` sits on the first commit of the artefact's branch, whatever that commit contains**, and names direct upstreams only: a skill produced by a plan step names the plan, not the ADR behind it. Before the first commit, ask what this artefact was produced from and write the path down; `land` refuses a branch whose first commit lacks it, unless the branch is a decision, its first commit carries `Clarifies` naming a path that existed at the fork point, which `land` sends direct to trunk with no human pull request, its first commit carries `Abandons` naming a path that existed at the fork point, as for `Clarifies`, or it carries a non-empty `Origin`. Abandoning an ADR is a decision, so a human lands it. A **root** is the first commit adding an artefact with no upstream in the repository — a bootstrap, source material, or a note from a conversation or seed — and an imported artefact records its provenance as `Origin: <owner>/<repo>@<rev>[:<path>]`, not in a prose header. **The body carries the reason**: a `Revises`, `Clarifies`, `Abandons` or deleting commit says what changed and why, in sentences.
 
-The last three are **verdict** trailers (ADR 0011), recorded by the reviser on a `Revises` branch — one per durable in-tree downstream of the revised ADR, naming that downstream from the revision's side. `land` refuses such a branch while any durable, in-tree downstream (from `history downstream`, filtered to the tree) carries none; see Rule 15. `begin` surfaces the same list as an advisory worklist that blocks nothing.
+The last three are **verdict** trailers (ADR 0011), recorded by the reviser on a `Revises` branch, or on one carrying `Abandons` naming an ADR — one per durable in-tree downstream of the revised or abandoned ADR, naming that downstream from the revision's side. On a `Revises` branch, `land` records a deferral for every durable in-tree downstream the reviser left without a verdict: it adds one commit to the branch, titled `Auto-defer the untouched blast radius`, carrying `Defers: <downstream> <revised ADR> until a plan derives from it` for each, before the branch is pushed, so the commit appears in the pull request with the rest of the branch. An abandoned ADR has no plan to come, so it gets no auto-defer: its branch judges each downstream. `land` refuses such a branch while any durable, in-tree downstream (from `history downstream`, filtered to the tree) carries none; see Rule 15. `begin` surfaces the same list as an advisory worklist that blocks nothing.
 
 ### Rule 13 — Merging is not mandatory, and nothing of anyone else's is yours to tidy
 
@@ -102,7 +106,7 @@ An experiment may remain unmerged; its branch and worktree stay. Do not remove a
 
 ## What the script decides — do not re-derive it by hand
 
-The trunk (from three refs, never from configuration or prose); whether to isolate and where; the branch name from the artefact path; what a worktree receives; whether a remote exists and which host it names; that a pull request is titled with the first commit's subject; that integration is a two-parent merge and never a squash, rebase or fast-forward; that a decision is landed by a human; what a stop leaves behind; and cleanup. `references/RULES.md` has each rule with its reasoning, for when you need to explain the script's behaviour, not to reproduce it.
+The trunk (from three refs, never from configuration or prose); where the worktree goes; the branch name from the artefact path; what a worktree receives; whether a remote exists and which host it names; that a pull request is titled with the first commit's subject; that integration is a two-parent merge and never a squash, rebase or fast-forward; that a decision is landed by a human; what a stop leaves behind; and cleanup. `references/RULES.md` has each rule with its reasoning, for when you need to explain the script's behaviour, not to reproduce it.
 
 ## Do not
 
