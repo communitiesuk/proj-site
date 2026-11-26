@@ -20,7 +20,7 @@ Tests with an empty HOME, no `TESSL_*` variables, `@tessl/cli@0.123.0` and a thr
 - An anonymous install of a public plugin worked.
 - The failed install still exited 0.
 
-A CI runner holds only GitHub's `GITHUB_TOKEN`. tessl and GitHub accounts are separate, so the pusher's membership of the private tessl workspace does not help. For the `tessl install` route the choice is a public plugin or a tessl key stored as a secret in every project. A direct trust route (tessl trusting GitHub Actions runs) was not ruled out.
+A CI runner holds only GitHub's `GITHUB_TOKEN`. tessl and GitHub accounts are separate, so the pusher's membership of the private tessl workspace does not help. For any registry install the choice is a public plugin or a tessl key stored as a secret in every project. A direct trust route (tessl trusting GitHub Actions runs) was not ruled out.
 
 Making the plugin public leaks nothing from projects: information flows one way, the tile's contents are generic, its fixtures are made up, and the source repo is already public.
 
@@ -46,8 +46,8 @@ Making the plugin public leaks nothing from projects: information flows one way,
 
 - Any project can opt in whatever its tessl mode, which unblocks the myelin pilot.
 - Everything published under `tile/` is public, so its content needs checking.
-- CI needs network access to the tessl registry and installs the CLI on each run.
-- Left to the plan: how proj-site stops depending on vendored mode, including how the templates locate the tile; how CI responds to a failed install, which exits 0; whether to set `TESSL_SHARE_USAGE_DATA` in CI (unconfirmed that it works).
+- CI needs network access to the tessl registry and installs the CLI on each run, unless proj-site is pinned to a local path.
+- Left to the plan: how proj-site stops depending on vendored mode; how CI responds to a failed install, which exits 0; whether to set `TESSL_SHARE_USAGE_DATA` in CI (unconfirmed that it works).
 - Out of scope: private repos opting in and the timeline and upcoming pages publishing unreviewed titles (#23); a guard against sensitive text in issues (#24); which issues count as "coming next" (#21); per-project theming (#22); whether tessl can trust GitHub Actions runs without a stored secret; what the CLI's usage data actually sends, which happens whether the plugin is public or private.
 
 ## References
