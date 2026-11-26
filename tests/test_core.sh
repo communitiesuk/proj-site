@@ -70,14 +70,27 @@ test_build_sections_follow_content_type() {
     make_project "$TMP/p" "$ct"
     build "$TMP/p" "$TMP/out" --no-render
     s="$TMP/out/src/content"
-    for always in changes summaries upcoming; do assert_file "$s/$always/_index.md"; done
+    for always in updates weeknotes coming-next; do assert_file "$s/$always/_index.md"; done
+    for old in changes summaries upcoming reference; do assert_no_path "$s/$old"; done
     assert_file "$s/_index.md"
     case $ct in
-      knowledge) assert_file "$s/docs/guide.md"; assert_no_path "$s/reference" ;;
-      code) assert_no_path "$s/docs"; assert_file "$s/reference/pkg/mod.md" ;;
-      both) assert_file "$s/docs/guide.md"; assert_file "$s/reference/pkg/mod.md" ;;
+      knowledge) assert_file "$s/guides/start.md"; assert_file "$s/docs/guide.md"
+                 assert_no_path "$s/docs/reference" ;;
+      code) assert_no_path "$s/guides"; assert_no_path "$s/docs/guide.md"
+            assert_file "$s/docs/reference/pkg/mod.md" ;;
+      both) assert_file "$s/guides/start.md"; assert_file "$s/docs/guide.md"
+            assert_file "$s/docs/reference/pkg/mod.md" ;;
     esac
   done
+  # knowledge with no hand-written doc page: no Docs section, no Docs tab.
+  rm -rf "$TMP/p" "$TMP/out"
+  make_project "$TMP/p" knowledge
+  git -C "$TMP/p" rm -q site/content/docs/guide.md
+  commit_at "$TMP/p" 2026-01-10T10:00:00Z -m "Drop the doc"
+  build "$TMP/p" "$TMP/out" --no-render
+  assert_no_path "$TMP/out/src/content/docs"
+  assert_not_contains "$(cat "$TMP/out/src/hugo.toml")" 'name = "Docs"'
+  assert_file "$TMP/out/src/content/guides/start.md"
 }
 
 test_build_generates_config_entries_and_data() {
@@ -87,11 +100,17 @@ test_build_generates_config_entries_and_data() {
   cfg=$(cat "$s/hugo.toml")
   assert_contains "$cfg" 'title = "Fixture project"'
   assert_contains "$cfg" 'baseURL = "https://example.github.io/fixture/"'
+  # Tabs, in order, with their names and addresses.
+  menu=$(awk -F'"' '/^  name = /{n=$2} /^  pageRef = /{print n "|" $2}' "$s/hugo.toml" | paste -sd ';' -)
+  assert_eq "Overview|/;Guides|/guides/;Docs|/docs/;Weeknotes|/weeknotes/;Latest updates|/updates/;Coming next|/coming-next/" "$menu"
+  for sec in guides:Guides docs:Docs weeknotes:Weeknotes updates:"Latest updates" coming-next:"Coming next"; do
+    assert_contains "$(cat "$s/content/${sec%%:*}/_index.md")" "title: ${sec#*:}"
+  done
   assert_contains "$(cat "$s/content/_index.md")" "OVERVIEW-TEXT"
-  entry=$(cat "$s/content/changes/2026-01-05-entry-one.md")
+  entry=$(cat "$s/content/updates/2026-01-05-entry-one.md")
   assert_contains "$entry" 'week: "2026-W02"'
   assert_not_contains "$entry" "pr:"
-  assert_contains "$(cat "$s/content/reference/pkg/mod.md")" "REFERENCE-TEXT"
+  assert_contains "$(cat "$s/content/docs/reference/pkg/mod.md")" "REFERENCE-TEXT"
   assert_eq "UPCOMING-ITEM" "$(jq -r '.[0].title' "$s/data/upcoming.json")"
   # Recent since the latest summary's period_end (2026-01-06).
   assert_eq "plan-completed,release,adr-revised" \
@@ -104,7 +123,7 @@ test_build_adds_pr_number_when_online() {
   make_project "$TMP/p" knowledge
   printf '#!/bin/sh\n# stub gh: api repos/<r>/commits/<sha>/pulls --jq ...\necho 42\n' > "$TMP/gh"; chmod +x "$TMP/gh"
   SITE_OFFLINE=0 SITE_GH="$TMP/gh" build "$TMP/p" "$TMP/out" --no-render
-  assert_contains "$(cat "$TMP/out/src/content/changes/2026-01-05-entry-one.md")" "pr: 42"
+  assert_contains "$(cat "$TMP/out/src/content/updates/2026-01-05-entry-one.md")" "pr: 42"
 }
 
 test_build_rejects_bad_project() {
@@ -133,14 +152,17 @@ test_build_renders_site_with_hugo() {
   build "$TMP/p" "$TMP/out"
   p="$TMP/out/public"
   assert_contains "$(cat "$p/index.html")" "OVERVIEW-TEXT"
-  changes=$(cat "$p/changes/index.html")
-  assert_contains "$changes" "ENTRY-ONE"
-  assert_contains "$changes" "2026-W02"
-  assert_contains "$changes" "Build it"
-  assert_contains "$(cat "$p/upcoming/index.html")" "UPCOMING-ITEM"
-  assert_contains "$(cat "$p/summaries/index.html")" "Week of 2026-01-01"
+  updates=$(cat "$p/updates/index.html")
+  assert_contains "$updates" "ENTRY-ONE"
+  assert_contains "$updates" "2026-W02"
+  assert_contains "$updates" "Build it"
+  assert_contains "$(cat "$p/coming-next/index.html")" "UPCOMING-ITEM"
+  assert_contains "$(cat "$p/weeknotes/index.html")" "Week of 2026-01-01"
+  assert_contains "$(cat "$p/guides/start/index.html")" "HOWTO-TEXT"
   assert_contains "$(cat "$p/docs/guide/index.html")" "GUIDE-TEXT"
-  assert_contains "$(cat "$p/reference/pkg/mod/index.html")" "REFERENCE-TEXT"
+  assert_contains "$(cat "$p/docs/reference/pkg/mod/index.html")" "REFERENCE-TEXT"
+  for now in guides docs weeknotes updates coming-next; do assert_file "$p/$now/index.html"; done
+  for old in summaries changes upcoming reference; do assert_no_path "$p/$old"; done
 }
 
 test_rendered_links_respect_a_base_path() {

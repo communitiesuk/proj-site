@@ -71,7 +71,8 @@ make_chain_repo() {
 make_project() { # dir content_type
   local r=$1 ct=$2
   make_chain_repo "$r"
-  mkdir -p "$r/site/content/changes" "$r/site/content/summaries" "$r/site/content/docs"
+  mkdir -p "$r/site/content/changes" "$r/site/content/summaries" "$r/site/content/docs" \
+    "$r/site/content/guides"
   cat > "$r/site/project.yaml" <<YAML
 name: "Fixture project"   # a comment
 repository: example/fixture
@@ -82,6 +83,7 @@ upcoming:
 YAML
   printf -- '---\ntitle: Overview\n---\nOVERVIEW-TEXT\n' > "$r/site/content/overview.md"
   printf -- '---\ntitle: Guide\n---\nGUIDE-TEXT\n' > "$r/site/content/docs/guide.md"
+  printf -- '---\ntitle: Start here\n---\nHOWTO-TEXT\n' > "$r/site/content/guides/start.md"
   printf -- '---\ntitle: ENTRY-ONE\ndate: 2026-01-05\ntheme: Core\nrefs: []\n---\nBody.\n' \
     > "$r/site/content/changes/2026-01-05-entry-one.md"
   printf -- '---\ntitle: Week of 2026-01-01\nperiod_start: 2025-12-25\nperiod_end: 2026-01-06\n---\nSUMMARY-TEXT\n' \
