@@ -29,12 +29,24 @@ if [ -z "$repo" ]; then
 fi
 
 issues=$("$gh" issue list --repo "$repo" --state open --limit 100 \
-  --json number,title,state,labels,url) || {
+  --json number,title,state,labels,url,body,createdAt) || {
   echo "github-issues: gh failed listing issues for $repo" >&2; exit 1; }
 
-printf '%s\n' "$issues" | jq '[.[] | {
+printf '%s\n' "$issues" | jq '
+# The text of the body section headed "## Site summary", up to the next heading.
+def site_summary:
+  (. // "") | gsub("\r"; "") | split("\n") as $l
+  | (first(range(0; $l | length) | select($l[.] | test("^##[ \t]+Site summary[ \t]*$"; "i"))) // null) as $i
+  | if $i == null then "" else
+      $l[$i + 1:] as $r
+      | (first(range(0; $r | length) | select($r[.] | test("^#{1,6}[ \t]"))) // ($r | length)) as $e
+      | $r[:$e] | join("\n") | gsub("^\\s+|\\s+$"; "")
+    end;
+[.[] | {
   title,
   ref: "#\(.number)",
   state: (.state | ascii_downcase),
-  theme: (first(.labels[].name | select(startswith("theme:")) | ltrimstr("theme:") | gsub("^\\s+|\\s+$"; "")) // "")
+  theme: (first(.labels[].name | select(startswith("theme:")) | ltrimstr("theme:") | gsub("^\\s+|\\s+$"; "")) // ""),
+  summary: (.body | site_summary),
+  date: ((.createdAt // "")[:10])
 }]'
