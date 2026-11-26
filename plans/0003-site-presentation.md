@@ -105,7 +105,10 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    the PR and each entry with a URL and listing the rest as plain text. In
    the Timeline (`S/core/layouts/updates/list.html.txt`), each event's commit ID and its
    path link to `https://github.com/<repository>/commit/<commit>`. Change
-   `tests/test_core.sh` first: `link_github` cases for each form, for text
+   `tests/test_core.sh` first (the shared `make_project` fixture's entry `refs` gain
+   `#42`, `docs/adr/0001-choice.md` and `plans/0001-build.md`, the last absent at
+   HEAD, and the weeknote, overview, guide and doc bodies gain a `#42`):
+   `link_github` cases for each form, for text
    inside backticks and inside a fenced block, for a path absent at HEAD,
    an unresolvable hex string, a path inside a longer one
    (`mydocs/x.md`), `#42a` and a 13-character hex string, all left alone, and for front matter containing `#42`,
@@ -163,7 +166,7 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    Add `tests/test_layouts.sh` first, using the fixtures in `tests/lib.sh`,
    rendering the fixture with Hugo and
    asserting on the HTML and inline CSS: the tab labels and order; the
-   active tab has the underline class; each token value above in its light
+   active tab carries `aria-current="page"`; each token value above in its light
    and dark block; each intro on its section page; a button whose text is
    "Dark mode" and a script containing `prefers-color-scheme`,
    `localStorage` and `data-theme`; no `http` URL in a `src`,
@@ -198,7 +201,7 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
      "Open all" button above the list, rendered only where a row expands and
      with `hidden` (the step 6 script shows it), opens every `<details>`.
    Change `tests/test_core.sh` and `tests/test_layouts.sh` first, with the
-   fixture's adapter giving three items, each with a `body` of
+   fixture's adapter giving four items, each with a `body` of
    issue-opening text: A (theme Alpha, date 2026-01-03, with a `summary`),
    B (theme Beta, date 2026-01-01, no `summary`), C (no theme, no date, no
    `summary`) and D (theme Alpha, date 2026-01-02, no `summary`). The titles
@@ -361,7 +364,7 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
   with script disabled the panel and "Open all" are hidden and the list
   shows grouped in the default order; with one item there is no panel; the browser's network panel shows
   no request to another site.
-- In every built page, every `#N`, every path under `docs/` or `plans/`
+- In every built page, outside code, front matter and existing links, per step 3, every `#N`, every path under `docs/` or `plans/`
   that exists at HEAD and every commit ID that resolves links to GitHub;
   each Timeline commit ID and path links to its commit page; each update
   page has "On GitHub".
