@@ -154,3 +154,34 @@ test_one_doctype_first() {
   assert_eq 1 "$(grep -c '<!doctype html>' "$PUB/index.html")" "one doctype"
   assert_eq '<!doctype html>' "$(grep -m1 . "$PUB/index.html")" "doctype first"
 }
+
+test_coming_next_controls_panel() {
+  render knowledge
+  c=$(tr '\n' ' ' < "$PUB/coming-next/index.html")
+  panel=$(printf '%s' "$c" | grep -o '<form[^>]*class="[^"]*controls[^"]*"[^>]*>.*</form>')
+  assert_contains "$(printf '%s' "$panel" | grep -o '^<form[^>]*>')" "hidden"
+  assert_contains "$panel" "Group by theme"
+  assert_contains "$panel" '<input type="checkbox" name="group" checked>'
+  assert_contains "$panel" "Order by date"
+  assert_contains "$panel" '<option value="oldest" selected>Oldest first</option>'
+  assert_contains "$panel" '<option value="newest">Newest first</option>'
+  assert_contains "$panel" "Show themes"
+  for v in Alpha Beta ''; do
+    assert_contains "$panel" "<input type=\"checkbox\" name=\"theme\" value=\"$v\" checked>"
+  done
+  assert_contains "$panel" "No theme"
+  assert_contains "$panel" ">Reset</button>"
+  assert_contains "$c" '<script src="/coming-next.js"></script>'
+  assert_file "$PUB/coming-next.js"
+}
+
+test_coming_next_one_item_has_no_panel() {
+  command -v "${HUGO:-hugo}" >/dev/null || { echo "hugo not installed"; return 1; }
+  make_project "$TMP/p" knowledge
+  echo '[{"title":"ONLY-ITEM","ref":"#1","state":"open","theme":"Alpha","date":"2026-01-01","summary":""}]' \
+    > "$TMP/adapters/upcoming/items.json"
+  build "$TMP/p" "$TMP/out"
+  c=$(cat "$TMP/out/public/coming-next/index.html")
+  assert_contains "$c" "ONLY-ITEM"
+  assert_not_contains "$c" "Group by theme"
+}
