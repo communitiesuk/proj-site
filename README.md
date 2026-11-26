@@ -179,12 +179,22 @@ registry install of 0.1.0 delivered no `*.yml` file.
 
 ## Opting in
 
-Any tessl mode works. The site workflows install the tile themselves: each
-run installs the pinned tessl CLI with `npx`, runs `tessl install` from the
-project's committed `tessl.json`, and fails the job if the tile did not arrive
-at `.tessl/plugins/mhclg-aaai/proj-site/`. So CI needs network access to the
-tessl registry. A private dependency in `tessl.json` is skipped in CI with a
-warning; the workflows need only proj-site, which is public.
+Any tessl mode works. Each run of the site workflows reads the proj-site
+entry in the project's committed `tessl.json`. A `file:` source is used as it
+stands; otherwise the workflow installs only proj-site, at the listed version,
+into a temporary folder with the pinned tessl CLI, and never installs the
+project's other dependencies. The job fails with a message when proj-site is
+not usable (not listed in `tessl.json`, or listed with no `file:` source or
+version) or the tile did not arrive. CI needs network access to the tessl
+registry unless proj-site is pinned to a local path.
+
+### Projects already opted in
+
+`site-init.sh` never overwrites existing files, so a project opted in with
+earlier templates regenerates its workflows: delete
+`.github/workflows/site-check.yml` and `site-pages.yml`, re-run `site-init.sh`
+(with `--trunk <branch>` when the trunk is not found), review the diff for any
+local edits to carry over, and commit the two workflows.
 
 ```sh
 tessl install mhclg-aaai/proj-site
