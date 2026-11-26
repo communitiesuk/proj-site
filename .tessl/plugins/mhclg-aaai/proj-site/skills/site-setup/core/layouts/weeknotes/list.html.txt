@@ -1,2 +1,2 @@
-{{ define "main" }}<h1>{{ .Title }}</h1>{{ .Content }}
+{{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
 <ul class="items">{{ range .Pages.ByParam "period_end" | collections.Reverse }}<li><a href="{{ .RelPermalink }}">{{ .Title }}</a> <time>{{ .Params.period_start }} – {{ .Params.period_end }}</time></li>{{ end }}</ul>{{ end }}

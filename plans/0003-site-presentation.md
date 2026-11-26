@@ -1,6 +1,6 @@
 ---
 title: Present the project site with the new tabs, colours and links
-status: draft
+status: in-progress
 adr: 0003
 date: 2026-11-26
 deferred_reason: null

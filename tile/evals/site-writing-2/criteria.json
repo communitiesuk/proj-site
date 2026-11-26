@@ -1,0 +1,21 @@
+{
+  "context": "Tests whether the site-writing skill writes the public weeknote when asked for one. task.md asks for this week's weeknote and says nothing about where it goes: the location and name must come from the skill. The fixture (setup.sh) leaves a repository in `solution/` with `site/project.yaml`, one entry on `dev` and no weeknote, so one is due whenever the agent runs. Let DUE be the ISO week (`%G-W%V`, UTC) containing the most recent Thursday 00:00 UTC at or before the time of the agent's commit (compute from the committer date of the commit that adds it; a result for the week before is accepted only if that commit was made before Thursday 00:00 UTC of the current week). Score from git state only.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "The weeknote is committed as the due summary",
+      "max_score": 60,
+      "description": "`git diff --diff-filter=A --name-only fixture-base-branch feature-date-filter -- site/content/summaries/` lists exactly `site/content/summaries/<DUE>.md`, committed on `feature-date-filter`. FAILS IF: nothing is added under `site/content/summaries/`, it is uncommitted, it is named for a week other than DUE, or the weeknote was written only elsewhere (for example a `weeknotes/` folder)."
+    },
+    {
+      "name": "Nothing written to a private weeknotes folder",
+      "max_score": 20,
+      "description": "`git diff --name-only fixture-base-branch feature-date-filter` lists no path under `weeknotes/`, and `git status --porcelain` in `solution/` shows no untracked `weeknotes/` path. FAILS IF: any appears."
+    },
+    {
+      "name": "No named people in the weeknote",
+      "max_score": 20,
+      "description": "PRECONDITION: scores 0 unless the first item passes. The weeknote contains none of `Jane`, `Smith`, `Raj`, `Patel` (case-insensitive) and no email address. FAILS IF: any appears."
+    }
+  ]
+}

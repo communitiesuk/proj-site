@@ -6,11 +6,14 @@ public site on GitHub Pages. Decided in
 
 The site has two audiences:
 
-- **Users** of the project's outputs: a hand-written overview, hand-written
-  long-form docs, and reference docs generated from docstrings.
+- **Users** of the project's outputs: a hand-written overview, guides and
+  technical docs, and reference docs generated from docstrings.
 - **Stakeholders**: a story of what was explored, decided, built and
-  shipped, read from the git graph, plus a per-PR entry for every PR and a
-  weekly summary.
+  shipped, read from the git graph, plus a per-PR entry for every PR, a
+  weekly weeknote, and what is coming next.
+
+How the site is organised and presented is decided in
+[ADR 0003](docs/adr/0003-site-presentation.md).
 
 ## What ships
 
@@ -35,9 +38,10 @@ site/
   project.yaml
   content/
     overview.md                         hand-written
-    docs/                               hand-written long-form docs
+    guides/                             hand-written guides
+    docs/                               hand-written technical docs
     changes/<YYYY-MM-DD>-<branch-slug>.md   one per PR
-    summaries/<%G-W%V>.md               one per weekly period
+    summaries/<%G-W%V>.md               one weeknote per weekly period
 ```
 
 ### `site/project.yaml`
@@ -56,14 +60,19 @@ upcoming:
 
 ### Sections per content type
 
-| Section | knowledge | code | both |
-| --- | --- | --- | --- |
-| Overview | yes | yes | yes |
-| Changes (timeline and per-PR entries) | yes | yes | yes |
-| Summaries | yes | yes | yes |
-| Upcoming | yes | yes | yes |
-| Docs (long-form) | yes | no | yes |
-| Reference (generated) | no | yes | yes |
+Tabs, in this order, at these addresses:
+
+| Tab | Address | From | knowledge | code | both |
+| --- | --- | --- | --- | --- | --- |
+| Overview | `/` | `overview.md` | yes | yes | yes |
+| Guides | `/guides/` | `guides/` | yes | no | yes |
+| Docs (with generated reference under `/docs/reference/`) | `/docs/` | `docs/`, reference adapters | only with a page in `docs/` | yes (reference only) | yes |
+| Weeknotes | `/weeknotes/` | `summaries/` | yes | yes | yes |
+| Latest updates (per-PR entries and the timeline) | `/updates/` | `changes/`, git history | yes | yes | yes |
+| Coming next | `/coming-next/` | upcoming-work adapter | yes | yes | yes |
+
+Every `#N`, `docs/` or `plans/` path present at HEAD, and commit ID in a copied
+page links to GitHub.
 
 ### Per-PR entries
 
@@ -124,8 +133,14 @@ A script at `S/adapters/upcoming/<source>.sh` (run with `bash`) or
 - Invoked as `<adapter> <project-dir>`, with the working directory set to
   the project.
 - Writes to stdout a JSON array of items:
-  `{"title": str, "ref": str, "state": str, "theme": str}`. `theme` is the
-  issue label with a `theme:` prefix, prefix removed, or `""`.
+  `{"title": str, "ref": str, "state": str, "theme": str, "summary": str, "date": str}`.
+  `theme` is the issue label with a `theme:` prefix, prefix removed, or `""`.
+  `summary` and `date` are optional (absent or `""` when the source has
+  none). For GitHub issues, `summary` is the text of the body's section
+  headed `## Site summary`, up to the next heading, and nothing else from the
+  body; `date` is the day the issue was opened (`YYYY-MM-DD`). Coming next
+  groups items by theme and orders them by date, and shows a summary only as
+  a row's expandable text.
 - Exits non-zero, with a message on stderr, when it cannot read its source.
 
 ### Reference-docs adapter
@@ -136,7 +151,7 @@ enabled by `languages`.
 - Invoked as `<adapter> <project-dir>`.
 - Writes to stdout a JSON array of pages:
   `{"path": str, "title": str, "content": str}`, where `path` is relative
-  to the reference section (for example `pkg/module.md`) and `content` is
+  to the reference section, `/docs/reference/` (for example `pkg/module.md`) and `content` is
   Markdown.
 - Writes `[]` when the project has no source in that language.
 

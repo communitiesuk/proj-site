@@ -5,7 +5,7 @@ description: Opts a myelin project into proj-site and builds or previews its pub
 
 # Site setup
 
-proj-site gives a project a public site on GitHub Pages: a hand-written overview and guides, generated reference docs, a timeline read from the git history, per-PR entries, weekly summaries and upcoming work. This skill opts a project in and builds the site. Its directory also holds the runtime every opted-in project uses: `core/` (the build), `adapters/`, `scripts/` and `templates/`.
+proj-site gives a project a public site on GitHub Pages, with the tabs Overview, Guides (`/guides/`), Docs (`/docs/`, with generated reference under `/docs/reference/`), Weeknotes (`/weeknotes/`), Latest updates (`/updates/`: per-PR entries and a timeline read from the git history) and Coming next (`/coming-next/`). This skill opts a project in and builds the site. Its directory also holds the runtime every opted-in project uses: `core/` (the build), `adapters/`, `scripts/` and `templates/`.
 
 The harness states this skill's base directory when it loads the skill. Call it `$SKILL_DIR`. Run every script with `bash` (or `python3` for `.py`): the registry does not keep executable bits.
 
@@ -42,4 +42,4 @@ hugo server --source <out-dir>/src                                  # preview
 - Do not hand-write `project.yaml` or the workflows; run the script, then edit.
 - Do not add the Claude Code hook unless asked.
 - Do not enable Pages without the user's confirmation; it publishes the site.
-- Do not migrate private weeknotes into `site/`.
+- Do not migrate the gitignored `weeknotes/` folder into `site/`.

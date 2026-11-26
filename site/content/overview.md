@@ -5,14 +5,15 @@ title: Overview
 date. A project opts in once; from then on its site shows:
 
 - **For people who use what the project produces:** a hand-written overview,
-  long-form guides, and reference documentation generated from the code's
+  **Guides**, and **Docs**, including reference generated from the code's
   docstrings.
-- **For stakeholders:** a timeline of what was explored, decided, built and
-  shipped, read straight from the project's history; a short entry for every
-  pull request; a weekly summary; and what is coming up next.
+- **For stakeholders:** **Weeknotes**, a short weekly account of the work;
+  **Latest updates**, an entry for every pull request and a timeline of what
+  was explored, decided, built and shipped, read straight from the project's
+  history; and **Coming next**.
 
 The content is written as part of normal work. An agent skill writes the
-per-PR entry, and the weekly summary when one is due, before a pull request is
+per-PR entry, and the weeknote when one is due, before a pull request is
 raised, so it is reviewed with the change. A check on every pull request makes
 sure neither is forgotten, and each merge redeploys the site to GitHub Pages.
 

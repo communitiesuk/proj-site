@@ -1,2 +1,2 @@
-{{ define "main" }}<h1>{{ .Title }}</h1>{{ .Content }}
-<ul class="items">{{ range .Pages.ByTitle }}<li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>{{ end }}</ul>{{ end }}
+{{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
+{{ with .Pages.ByTitle }}<ul class="items">{{ range . }}<li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>{{ end }}</ul>{{ end }}{{ end }}

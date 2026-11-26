@@ -3,13 +3,13 @@
 # Fixture for evals/site-update-0.
 #
 # A repository opted into proj-site (content_type both). On dev, the code
-# offers search() and export_csv(), and site/content/docs/exporting.md and
+# offers search() and export_csv(), and site/content/guides/exporting.md and
 # site/content/overview.md describe both. Branch remove-csv-export, checked
 # out, removes export_csv() from the code and its tests. The task asks only
 # that the branch be prepared for review; the site-update skill must find and
 # change the hand-written passages that still describe CSV export.
 #
-#   - export_csv named in the overview and in a long-form doc: lets the
+#   - export_csv named in the overview and in a guide: lets the
 #     "no stale passage remains" criterion fail on either file.
 #   - search() documented alongside it: lets the "unrelated passages kept"
 #     criterion fail when an agent deletes whole files.
@@ -22,7 +22,7 @@ git symbolic-ref HEAD refs/heads/dev
 git config --local user.name "Lantern Maintainers"
 git config --local user.email "maintainers@example.invalid"
 git config --local commit.gpgsign false
-mkdir -p site/content/docs site/content/changes src tests
+mkdir -p site/content/guides site/content/changes src tests
 cat > site/project.yaml <<YAML
 name: Lantern
 repository: example/lantern
@@ -38,7 +38,7 @@ title: Overview
 Lantern makes council meeting minutes searchable. Use `search()` to find
 decisions by keyword, and `export_csv()` to download the results as a CSV file.
 MD
-cat > site/content/docs/exporting.md <<'MD'
+cat > site/content/guides/exporting.md <<'MD'
 ---
 title: Searching and exporting
 ---

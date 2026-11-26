@@ -1,62 +1,5 @@
 # Tests for tile/core: lib.sh helpers, timeline.sh and build.sh.
 
-# --- fixtures --------------------------------------------------------------
-
-# A project repo with a known trailer chain:
-#   01-01 add discovery note       01-02 add ADR        01-03 consume note
-#   01-04 add plan                 01-06 complete plan, tag v0.1.0
-#   01-08 revise ADR
-make_chain_repo() {
-  local r=$1
-  make_repo "$r"
-  mkdir -p "$r/docs/discovery" "$r/docs/adr" "$r/plans"
-  printf -- '---\ntitle: An idea\n---\n' > "$r/docs/discovery/0001-idea.md"
-  commit_at "$r" 2026-01-01T10:00:00Z -m "Add discovery note"
-  printf -- '---\ntitle: Which choice?\n---\nv1\n' > "$r/docs/adr/0001-choice.md"
-  commit_at "$r" 2026-01-02T10:00:00Z -m "Add ADR 0001"
-  git -C "$r" rm -q docs/discovery/0001-idea.md
-  commit_at "$r" 2026-01-03T10:00:00Z -m "Remove consumed note" -m "Consumed-By: docs/adr/0001-choice.md"
-  printf -- '---\ntitle: Build it\n---\n' > "$r/plans/0001-build.md"
-  commit_at "$r" 2026-01-04T10:00:00Z -m "Add plan 0001" -m "Derives-From: docs/adr/0001-choice.md"
-  git -C "$r" rm -q plans/0001-build.md
-  commit_at "$r" 2026-01-06T10:00:00Z -m "Complete plan 0001" -m "Completes: plans/0001-build.md"
-  git -C "$r" tag v0.1.0
-  printf -- '---\ntitle: Which choice?\n---\nv2\n' > "$r/docs/adr/0001-choice.md"
-  commit_at "$r" 2026-01-08T10:00:00Z -m "Revise ADR 0001" -m "Revises: docs/adr/0001-choice.md"
-}
-
-# A minimal opted-in project on top of the chain repo, with fake adapters.
-make_project() { # dir content_type
-  local r=$1 ct=$2
-  make_chain_repo "$r"
-  mkdir -p "$r/site/content/changes" "$r/site/content/summaries" "$r/site/content/docs"
-  cat > "$r/site/project.yaml" <<YAML
-name: "Fixture project"   # a comment
-repository: example/fixture
-content_type: $ct
-languages: [fake]
-upcoming:
-  source: fake
-YAML
-  printf -- '---\ntitle: Overview\n---\nOVERVIEW-TEXT\n' > "$r/site/content/overview.md"
-  printf -- '---\ntitle: Guide\n---\nGUIDE-TEXT\n' > "$r/site/content/docs/guide.md"
-  printf -- '---\ntitle: ENTRY-ONE\ndate: 2026-01-05\ntheme: Core\nrefs: []\n---\nBody.\n' \
-    > "$r/site/content/changes/2026-01-05-entry-one.md"
-  printf -- '---\ntitle: Week of 2026-01-01\nperiod_start: 2025-12-25\nperiod_end: 2026-01-06\n---\nSUMMARY-TEXT\n' \
-    > "$r/site/content/summaries/2026-W01.md"
-  commit_at "$r" 2026-01-09T10:00:00Z -m "Opt in"
-  mkdir -p "$TMP/adapters/upcoming" "$TMP/adapters/reference"
-  # Fakes as the registry delivers them: with an extension, no executable bit.
-  printf 'echo %s\n' "'[{\"title\":\"UPCOMING-ITEM\",\"ref\":\"#7\",\"state\":\"open\",\"theme\":\"Core\"}]'" \
-    > "$TMP/adapters/upcoming/fake.sh"
-  printf 'import json\nprint(json.dumps([{"path": "pkg/mod.md", "title": "pkg.mod", "content": "REFERENCE-TEXT"}]))\n' \
-    > "$TMP/adapters/reference/fake.py"
-  chmod -x "$TMP/adapters/upcoming/fake.sh" "$TMP/adapters/reference/fake.py"
-  export SITE_ADAPTERS="$TMP/adapters" SITE_OFFLINE=1
-}
-
-build() { bash "$TILE/core/build.sh" "$@"; }
-
 # --- lib.sh ----------------------------------------------------------------
 
 test_yaml_get_reads_scalars_lists_and_nested_keys() {
@@ -127,14 +70,27 @@ test_build_sections_follow_content_type() {
     make_project "$TMP/p" "$ct"
     build "$TMP/p" "$TMP/out" --no-render
     s="$TMP/out/src/content"
-    for always in changes summaries upcoming; do assert_file "$s/$always/_index.md"; done
+    for always in updates weeknotes coming-next; do assert_file "$s/$always/_index.md"; done
+    for old in changes summaries upcoming reference; do assert_no_path "$s/$old"; done
     assert_file "$s/_index.md"
     case $ct in
-      knowledge) assert_file "$s/docs/guide.md"; assert_no_path "$s/reference" ;;
-      code) assert_no_path "$s/docs"; assert_file "$s/reference/pkg/mod.md" ;;
-      both) assert_file "$s/docs/guide.md"; assert_file "$s/reference/pkg/mod.md" ;;
+      knowledge) assert_file "$s/guides/start.md"; assert_file "$s/docs/guide.md"
+                 assert_no_path "$s/docs/reference" ;;
+      code) assert_no_path "$s/guides"; assert_no_path "$s/docs/guide.md"
+            assert_file "$s/docs/reference/pkg/mod.md" ;;
+      both) assert_file "$s/guides/start.md"; assert_file "$s/docs/guide.md"
+            assert_file "$s/docs/reference/pkg/mod.md" ;;
     esac
   done
+  # knowledge with no hand-written doc page: no Docs section, no Docs tab.
+  rm -rf "$TMP/p" "$TMP/out"
+  make_project "$TMP/p" knowledge
+  git -C "$TMP/p" rm -q site/content/docs/guide.md
+  commit_at "$TMP/p" 2026-01-10T10:00:00Z -m "Drop the doc"
+  build "$TMP/p" "$TMP/out" --no-render
+  assert_no_path "$TMP/out/src/content/docs"
+  assert_not_contains "$(cat "$TMP/out/src/hugo.toml")" 'name = "Docs"'
+  assert_file "$TMP/out/src/content/guides/start.md"
 }
 
 test_build_generates_config_entries_and_data() {
@@ -144,12 +100,18 @@ test_build_generates_config_entries_and_data() {
   cfg=$(cat "$s/hugo.toml")
   assert_contains "$cfg" 'title = "Fixture project"'
   assert_contains "$cfg" 'baseURL = "https://example.github.io/fixture/"'
+  # Tabs, in order, with their names and addresses.
+  menu=$(awk -F'"' '/^  name = /{n=$2} /^  pageRef = /{print n "|" $2}' "$s/hugo.toml" | paste -sd ';' -)
+  assert_eq "Overview|/;Guides|/guides/;Docs|/docs/;Weeknotes|/weeknotes/;Latest updates|/updates/;Coming next|/coming-next/" "$menu"
+  for sec in guides:Guides docs:Docs weeknotes:Weeknotes updates:"Latest updates" coming-next:"Coming next"; do
+    assert_contains "$(cat "$s/content/${sec%%:*}/_index.md")" "title: ${sec#*:}"
+  done
   assert_contains "$(cat "$s/content/_index.md")" "OVERVIEW-TEXT"
-  entry=$(cat "$s/content/changes/2026-01-05-entry-one.md")
+  entry=$(cat "$s/content/updates/2026-01-05-entry-one.md")
   assert_contains "$entry" 'week: "2026-W02"'
   assert_not_contains "$entry" "pr:"
-  assert_contains "$(cat "$s/content/reference/pkg/mod.md")" "REFERENCE-TEXT"
-  assert_eq "UPCOMING-ITEM" "$(jq -r '.[0].title' "$s/data/upcoming.json")"
+  assert_contains "$(cat "$s/content/docs/reference/pkg/mod.md")" "REFERENCE-TEXT"
+  assert_eq "ITEM-A" "$(jq -r '.[0].title' "$s/data/upcoming.json")"
   # Recent since the latest summary's period_end (2026-01-06).
   assert_eq "plan-completed,release,adr-revised" \
     "$(jq -r '[.[] | select(.recent) | .kind] | join(",")' "$s/data/timeline.json")"
@@ -161,7 +123,7 @@ test_build_adds_pr_number_when_online() {
   make_project "$TMP/p" knowledge
   printf '#!/bin/sh\n# stub gh: api repos/<r>/commits/<sha>/pulls --jq ...\necho 42\n' > "$TMP/gh"; chmod +x "$TMP/gh"
   SITE_OFFLINE=0 SITE_GH="$TMP/gh" build "$TMP/p" "$TMP/out" --no-render
-  assert_contains "$(cat "$TMP/out/src/content/changes/2026-01-05-entry-one.md")" "pr: 42"
+  assert_contains "$(cat "$TMP/out/src/content/updates/2026-01-05-entry-one.md")" "pr: 42"
 }
 
 test_build_rejects_bad_project() {
@@ -190,14 +152,17 @@ test_build_renders_site_with_hugo() {
   build "$TMP/p" "$TMP/out"
   p="$TMP/out/public"
   assert_contains "$(cat "$p/index.html")" "OVERVIEW-TEXT"
-  changes=$(cat "$p/changes/index.html")
-  assert_contains "$changes" "ENTRY-ONE"
-  assert_contains "$changes" "2026-W02"
-  assert_contains "$changes" "Build it"
-  assert_contains "$(cat "$p/upcoming/index.html")" "UPCOMING-ITEM"
-  assert_contains "$(cat "$p/summaries/index.html")" "Week of 2026-01-01"
+  updates=$(cat "$p/updates/index.html")
+  assert_contains "$updates" "ENTRY-ONE"
+  assert_contains "$updates" "2026-W02"
+  assert_contains "$updates" "Build it"
+  assert_contains "$(cat "$p/coming-next/index.html")" "ITEM-A"
+  assert_contains "$(cat "$p/weeknotes/index.html")" "Week of 2026-01-01"
+  assert_contains "$(cat "$p/guides/start/index.html")" "HOWTO-TEXT"
   assert_contains "$(cat "$p/docs/guide/index.html")" "GUIDE-TEXT"
-  assert_contains "$(cat "$p/reference/pkg/mod/index.html")" "REFERENCE-TEXT"
+  assert_contains "$(cat "$p/docs/reference/pkg/mod/index.html")" "REFERENCE-TEXT"
+  for now in guides docs weeknotes updates coming-next; do assert_file "$p/$now/index.html"; done
+  for old in summaries changes upcoming reference; do assert_no_path "$p/$old"; done
 }
 
 test_rendered_links_respect_a_base_path() {
@@ -207,4 +172,62 @@ test_rendered_links_respect_a_base_path() {
   home=$(cat "$TMP/out/public/index.html")
   assert_contains "$home" 'class="site" href="/sub/"'
   ! grep -q 'href="/"' "$TMP/out/public/index.html" || fail "a link ignores the base path"
+}
+
+# --- GitHub links ------------------------------------------------------------
+
+test_link_github_links_each_form() {
+  make_chain_repo "$TMP/r"; . "$TILE/core/lib.sh"
+  c=$(git -C "$TMP/r" rev-parse --short=8 HEAD)
+  out=$(printf 'See #42, docs/adr/0001-choice.md and %s.\n' "$c" | link_github org/repo "$TMP/r")
+  assert_eq "See [#42](https://github.com/org/repo/issues/42), [docs/adr/0001-choice.md](https://github.com/org/repo/blob/HEAD/docs/adr/0001-choice.md) and [$c](https://github.com/org/repo/commit/$c)." "$out"
+}
+
+test_link_github_leaves_the_rest_alone() {
+  make_chain_repo "$TMP/r"; . "$TILE/core/lib.sh"
+  c13=$(git -C "$TMP/r" rev-parse HEAD | cut -c1-13)
+  tree=$(git -C "$TMP/r" rev-parse --short=8 'HEAD^{tree}')
+  input=$(cat <<TEXT
+Code \`#42\` and \`docs/adr/0001-choice.md\`.
+\`\`\`
+#42 docs/adr/0001-choice.md
+\`\`\`
+Deleted plans/0001-build.md, made-up fedcba9 and tree $tree.
+Inside mydocs/adr/0001-choice.md and content/docs/adr/0001-choice.md.
+Not issues: #42a, #00625E, #000000, &#39; and $c13.
+Linked already: [#42](https://example.com/x) and https://example.com/page#42 and <a href="#42">x</a>.
+TEXT
+)
+  assert_eq "$input" "$(printf '%s\n' "$input" | link_github org/repo "$TMP/r")"
+}
+
+test_link_github_leaves_front_matter_and_needs_a_repository() {
+  make_chain_repo "$TMP/r"; . "$TILE/core/lib.sh"
+  out=$(printf -- '---\ntitle: Issue #42\nrefs: ["#42"]\n---\nSee #42.\n' | link_github org/repo "$TMP/r")
+  assert_eq "$(printf -- '---\ntitle: Issue #42\nrefs: ["#42"]\n---\nSee [#42](https://github.com/org/repo/issues/42).')" "$out"
+  assert_eq "See #42." "$(printf 'See #42.\n' | link_github "" "$TMP/r")"
+}
+
+test_build_links_github_references() {
+  command -v "${HUGO:-hugo}" >/dev/null || { echo "hugo not installed"; return 1; }
+  make_project "$TMP/p" both
+  printf '#!/bin/sh\n# stub gh: api repos/<r>/commits/<sha>/pulls --jq ...\necho 42\n' > "$TMP/gh"; chmod +x "$TMP/gh"
+  SITE_OFFLINE=0 SITE_GH="$TMP/gh" build "$TMP/p" "$TMP/out"
+  p="$TMP/out/public"; gh=https://github.com/example/fixture
+  entry=$(cat "$p/updates/2026-01-05-entry-one/index.html")
+  assert_contains "$entry" "On GitHub"
+  assert_contains "$entry" "href=\"$gh/pull/42\""
+  assert_contains "$entry" "href=\"$gh/issues/42\""
+  assert_contains "$entry" "href=\"$gh/blob/HEAD/docs/adr/0001-choice.md\""
+  assert_contains "$entry" "plans/0001-build.md"
+  assert_not_contains "$entry" "blob/HEAD/plans/0001-build.md"
+  assert_contains "$(cat "$p/weeknotes/2026-w01/index.html")" ">#42</a>"
+  for page in index.html guides/start/index.html docs/guide/index.html; do
+    assert_contains "$(cat "$p/$page")" "href=\"$gh/issues/42\"" "$page"
+  done
+  # The Timeline links each event's commit ID and path to the commit page.
+  sha=$(jq -r '.[] | select(.kind == "discovery-added") | .commit' "$TMP/out/src/data/timeline.json")
+  updates=$(cat "$p/updates/index.html")
+  assert_contains "$updates" "href=\"$gh/commit/$sha\">$sha</a>"
+  assert_contains "$updates" "href=\"$gh/commit/$sha\">docs/discovery/0001-idea.md</a>"
 }

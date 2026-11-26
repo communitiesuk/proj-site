@@ -1,6 +1,6 @@
 {
   "name": "mhclg-aaai/proj-site",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An automatically maintained public project site for myelin projects: per-PR entries, weekly summaries, a git-graph timeline and user docs, built with Hugo and deployed to GitHub Pages",
   "skills": "./skills/"
 }

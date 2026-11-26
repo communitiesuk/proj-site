@@ -19,8 +19,39 @@ STUB
 run_issues() { bash "$GH_ISSUES" "$TMP/p"; }
 
 test_theme_label_extracted() {
-  setup_gh '[{"number":7,"title":"Add X","state":"OPEN","url":"u","labels":[{"name":"theme:Release assurance"}]}]'
-  assert_eq '[{"title":"Add X","ref":"#7","state":"open","theme":"Release assurance"}]' "$(run_issues | jq -c .)"
+  setup_gh '[{"number":7,"title":"Add X","state":"OPEN","url":"u","body":"","createdAt":"2026-03-04T22:15:00Z","labels":[{"name":"theme:Release assurance"}]}]'
+  assert_eq '[{"title":"Add X","ref":"#7","state":"open","theme":"Release assurance","summary":"","date":"2026-03-04"}]' "$(run_issues | jq -c .)"
+}
+
+test_body_and_created_at_requested() {
+  setup_gh '[]'
+  run_issues >/dev/null
+  assert_contains "$(cat "$TMP/gh.args")" 'body'
+  assert_contains "$(cat "$TMP/gh.args")" 'createdAt'
+}
+
+test_site_summary_section_only() {
+  body='Internal notes: ask the supplier about INTERNAL-NOTE.\n\n## Site summary\n\n  Readers will be able to SUMMARY-TEXT.\nSecond line.\n'
+  setup_gh "[{\"number\":8,\"title\":\"T\",\"state\":\"OPEN\",\"url\":\"u\",\"body\":\"$body\",\"createdAt\":\"2026-01-02T00:00:00Z\",\"labels\":[]}]"
+  out=$(run_issues)
+  assert_eq 'Readers will be able to SUMMARY-TEXT.
+Second line.' "$(printf '%s' "$out" | jq -r '.[0].summary')"
+  assert_not_contains "$out" "INTERNAL-NOTE"
+}
+
+test_no_site_summary_gives_empty_and_no_body_text() {
+  setup_gh '[{"number":9,"title":"T","state":"OPEN","url":"u","body":"Opening text OPENING-TEXT.\n\n## Context\nMore CONTEXT-TEXT.","createdAt":"2026-01-02T00:00:00Z","labels":[]}]'
+  out=$(run_issues)
+  assert_eq '' "$(printf '%s' "$out" | jq -r '.[0].summary')"
+  assert_not_contains "$out" "OPENING-TEXT"
+  assert_not_contains "$out" "CONTEXT-TEXT"
+}
+
+test_site_summary_stops_at_next_heading() {
+  setup_gh '[{"number":10,"title":"T","state":"OPEN","url":"u","body":"## Site summary\nKEEP-THIS.\n### Detail\nDROP-THIS.","createdAt":"2026-01-02T00:00:00Z","labels":[]}]'
+  out=$(run_issues)
+  assert_eq 'KEEP-THIS.' "$(printf '%s' "$out" | jq -r '.[0].summary')"
+  assert_not_contains "$out" "DROP-THIS"
 }
 
 test_no_theme_label_gives_empty() {
@@ -85,4 +116,11 @@ test_stub_reads_file() {
   echo '[{"title":"A","ref":"#1","state":"open","theme":"T"}]' > "$TMP/p/site/upcoming-stub.json"
   assert_eq '[{"title":"A","ref":"#1","state":"open","theme":"T"}]' \
     "$(bash "$TILE/adapters/upcoming/stub.sh" "$TMP/p" | jq -c .)"
+}
+
+test_site_summary_with_crlf_line_endings() {
+  setup_gh '[{"number":11,"title":"T","state":"OPEN","url":"u","body":"Intro.\r\n\r\n## Site summary\r\nCRLF-SUMMARY.\r\n\r\n## Notes\r\nNOT-THIS.","createdAt":"2026-01-02T00:00:00Z","labels":[]}]'
+  out=$(run_issues)
+  assert_eq 'CRLF-SUMMARY.' "$(printf '%s' "$out" | jq -r '.[0].summary')"
+  assert_not_contains "$out" "NOT-THIS"
 }
