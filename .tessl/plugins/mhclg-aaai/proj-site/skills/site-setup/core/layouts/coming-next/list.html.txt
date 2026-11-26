@@ -6,7 +6,12 @@ data-item-theme and data-date. Where the item has a summary the row is a
 <details> whose only other text is that summary and a "Discuss on GitHub"
 link; otherwise it shows nothing else. An "Open all" button, rendered
 hidden and only where a row expands, opens every <details>; the controls
-script shows it. No text from an issue's body other than its summary. */}}
+script shows it. No text from an issue's body other than its summary.
+Where there are two or more items, a controls panel is rendered with
+`hidden` above the list: "Group by theme" (checked), "Order by date"
+("Oldest first", "Newest first"), "Show themes" with a checked box per
+theme present ("No theme" last, only where an item lacks one) and "Reset".
+coming-next.js shows and wires it. */}}
 {{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
 {{ $repo := site.Params.repository }}{{ $items := hugo.Data.upcoming }}
 {{ if $items }}
