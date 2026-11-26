@@ -10,7 +10,7 @@
     {
       "name": "Both workflows, with the trunk substituted",
       "max_score": 35,
-      "description": "`.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml` are committed on `dev`; the Pages workflow contains `branches: [dev]` and no `__TRUNK__`; both refer to the tile as `.tessl/plugins/mhclg-aaai/proj-site`, run `npx -y @tessl/cli@0.123.0 install` and test that `$SITE_TILE/skills/site-setup/scripts/check-pr.sh` exists; `git show dev:tessl.json` keeps `\"mode\": \"managed\"`. FAILS IF: either workflow is missing, the trunk is wrong or unsubstituted, the workflows were hand-written without the tile path, the install or the tile check, or `tessl.json` was switched out of managed mode."
+      "description": "`.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml` are committed on `dev`; the Pages workflow contains `branches: [dev]` and no `__TRUNK__`; both have a \"Locate the proj-site tile\" step that reads `mhclg-aaai/proj-site` from `tessl.json`, installs only that dependency in a temporary folder, and tests that `$SITE_TILE/skills/site-setup/scripts/check-pr.sh` exists; `git show dev:tessl.json` keeps `\"mode\": \"managed\"`. FAILS IF: either workflow is missing, the trunk is wrong or unsubstituted, a workflow lacks the step, installs the project's other dependencies or skips the tile check, or `tessl.json` was switched out of managed mode."
     },
     {
       "name": "Overview stub committed",

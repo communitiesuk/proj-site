@@ -4,9 +4,11 @@ weight: 1
 ---
 ## Requirements
 
-- A myelin project on GitHub that uses tessl, in any mode. The site's
-  workflows install the tile from the project's `tessl.json` on each run, so
-  they need network access to the tessl registry.
+- A myelin project on GitHub that uses tessl, in any mode, with
+  `mhclg-aaai/proj-site` in its `tessl.json`. On each run the site's
+  workflows install only proj-site, at that version, into a temporary folder,
+  so they need network access to the tessl registry; the project's other
+  dependencies are never installed.
 - Bash 4 or later, `git`, `gh` and `jq`. The Pages workflow installs Hugo
   itself.
 
@@ -56,3 +58,12 @@ Readers will be able to filter the list by date.
 The text up to the next heading becomes the row's expandable summary.
 Nothing else in the issue appears on the site, so write that section for a
 public reader.
+
+## If the project is already opted in
+
+The opt-in script never overwrites files, so a project opted in with an
+earlier version of proj-site keeps its old workflows. To update them, delete
+`.github/workflows/site-check.yml` and `site-pages.yml`, run the opt-in script
+again (with `--trunk <branch>` if it cannot find the trunk), check the diff
+for any local changes worth keeping, and commit the two workflows in a pull
+request with its own per-PR entry.

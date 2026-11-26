@@ -11,7 +11,7 @@ The harness states this skill's base directory when it loads the skill. Call it 
 
 ## Opting a project in
 
-1. **Check the prerequisites.** The repository root is the working directory; the tile is installed (`tessl install mhclg-aaai/proj-site`), so `tessl.json` lists it. Any tessl mode works: the workflows install the tile themselves, so leave the project's mode as it is.
+1. **Check the prerequisites.** The repository root is the working directory; the tile is installed (`tessl install mhclg-aaai/proj-site`), so `tessl.json` lists it. Any tessl mode works, so leave the project's mode as it is: the workflows read proj-site's entry in `tessl.json` and install only proj-site at that version into a temporary folder (or use a `file:` source as it stands), never the project's other dependencies.
 2. **Run the opt-in script.** Do not hand-write the files it creates:
 
    ```sh
@@ -20,7 +20,7 @@ The harness states this skill's base directory when it loads the skill. Call it 
 
    - Leave `--content-type` out unless the user names one: the script picks `both` when the project has Python and `knowledge` otherwise. Pass it when the detection is wrong for the project, for example a tooling repository whose users want guides, not reference pages.
    - Pass `--with-claude-hook` only when asked for it. It registers `scripts/hook-pr-create.sh` in `.claude/settings.json`, which blocks raising a pull request until the branch has its per-PR entry. `scripts/check-pr.sh` is the check the PR workflow runs.
-   - It creates only what is missing, so re-running it is safe.
+   - It creates only what is missing, so re-running it is safe. A project opted in with earlier templates regenerates its workflows by deleting `.github/workflows/site-check.yml` and `site-pages.yml` first, then re-running it.
 3. **Review what it created**: `site/project.yaml`, `site/content/overview.md` and `.github/workflows/site-check.yml` and `site-pages.yml`. Fill in the overview from the README in plain language; everything under `site/` is public (no named people, no secrets).
 4. **Build locally** (below) to confirm the site renders.
 5. **Commit** the files on the opt-in branch. Before raising the pull request, the `site-writing` skill writes the per-PR entry, and the first weekly summary, which is always due on opt-in.
