@@ -39,8 +39,10 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    summaries upcoming` loop in `tests/test_core.sh`, become updates,
    weeknotes and coming-next. `check-pr.sh`, the hooks and the skills still
    read the committed folders; `timeline.sh` reads git and is unchanged.
-   `build.sh` also copies `S/core/static/coming-next.js` (step 6) to
-   `src/static/`. Update the header comment of `build.sh`. First move `make_chain_repo` and `make_project` from
+   `build.sh` copies the whole `S/core/static/` directory, where it exists,
+   to `src/static/`. Rename the layouts: `S/core/layouts/changes/` to
+   `updates/`, `summaries/` to `weeknotes/` and `upcoming/` to `coming-next/`.
+   Update the header comment of `build.sh`. First move `make_chain_repo` and `make_project` from
    `tests/test_core.sh` to `tests/lib.sh`, so `tests/test_layouts.sh` can use
    them. Then change `tests/test_core.sh`: the fixture gains a
    `site/content/guides/` page, and these existing tests change:
@@ -86,25 +88,27 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    body of every page it copies into the build (overview, Guides, Docs,
    updates, weeknotes; front matter is left as written, and not inside code
    spans, fenced code blocks or existing links): `#N` to
-   `https://github.com/<repository>/issues/N`, a path under `docs/` or
-   `plans/` that exists at HEAD in the project, and is not part of a longer
-   path or word, to `https://github.com/<repository>/blob/HEAD/<path>` (a
-   path absent at HEAD stays plain text), and a 7-to-12-character hex commit
-   ID that resolves with `git rev-parse --verify <hex>^{commit}` in the
-   project to its commit page. Put the transform in `S/core/lib.sh` as
+   `https://github.com/<repository>/issues/N` where `#N` is not followed by a
+   letter or digit, a path under `docs/` or `plans/` that exists at HEAD in
+   the project, is not preceded by a letter, digit, `/`, `.`, `-` or `_` and
+   is not followed by a letter, digit or `/`, to
+   `https://github.com/<repository>/blob/HEAD/<path>` (a path absent at HEAD
+   stays plain text), and a 7-to-12-character hex commit ID that stands
+   alone (no letter or digit before or after it) and resolves with
+   `git rev-parse --verify <hex>^{commit}` in the project to its commit page. Put the transform in `S/core/lib.sh` as
    `link_github <repository> <project-dir>` (stdin to stdout). `build.sh`
    also writes each update's `refs` as `ghrefs` front matter, each entry a
    label and a URL: the issue page for `#N`, the blob URL for a path
    present at HEAD, and no URL for a path absent at HEAD. Each update page
    gains an "On GitHub" section, rendered by
-   `S/core/layouts/updates/single.html.txt` from `pr` and `ghrefs`, linking
+   a new `S/core/layouts/updates/single.html.txt` from `pr` and `ghrefs`, linking
    the PR and each entry with a URL and listing the rest as plain text. In
-   the Timeline (step 5's updates layout), each event's commit ID and its
+   the Timeline (`S/core/layouts/updates/list.html.txt`), each event's commit ID and its
    path link to `https://github.com/<repository>/commit/<commit>`. Change
    `tests/test_core.sh` first: `link_github` cases for each form, for text
    inside backticks and inside a fenced block, for a path absent at HEAD,
-   an unresolvable hex string and a path inside a longer one
-   (`mydocs/x.md`), all left alone, and for front matter containing `#42`,
+   an unresolvable hex string, a path inside a longer one
+   (`mydocs/x.md`), `#42a` and a 13-character hex string, all left alone, and for front matter containing `#42`,
    left unchanged; with `SITE_OFFLINE=0` and a stub `SITE_GH` (as
    `test_build_adds_pr_number_when_online` does), a rendered update page
    contains the "On GitHub" heading, the PR link, a link for a `#42` ref and
@@ -176,34 +180,38 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
      "Weeknotes are a short weekly account of what the project explored,
      decided, built and shipped." No "Latest summary". With no weeknote, the
      section is left out.
-   - `S/core/layouts/changes/list.html.txt` becomes
-     `S/core/layouts/updates/list.html.txt`: "By week" and "Timeline" as two
+   - `S/core/layouts/updates/list.html.txt`: "By week" and "Timeline" as two
      in-page tabs (`role="tablist"`, working without script as two
-     anchored sections, and with script showing one panel at a time).
-     Rename `summaries/list.html.txt` to `weeknotes/list.html.txt` and
-     `upcoming/list.html.txt` to `coming-next/list.html.txt`. In the
+     anchored sections, and with script showing one panel at a time). In the
      timeline's intro paragraph, "since the last summary" becomes "since
      the last weeknote".
-   - Coming next: the rows are in date order, oldest first, items with no
-     `date` last. Each row is the item's title linked to its GitHub issue
-     (`repository` and `ref`) and, where `theme` is non-empty, a theme tag,
-     and carries `data-theme` and `data-date` attributes. Where `summary` is
+   - Coming next: the rows are grouped by theme, each group an `h3` with
+     the theme above its rows, groups in alphabetical order of theme, items
+     with no theme in a last group headed "No theme"; within a group, oldest
+     `date` first, items with no `date` last. Each row is the item's title
+     linked to its GitHub issue (`repository` and `ref`) and, where `theme`
+     is non-empty, a theme tag, and carries `data-item-theme` and `data-date`
+     attributes. Where `summary` is
      non-empty the row is a `<details>`: its summary text is the only
      other text, followed by a link "Discuss on GitHub" to the issue; with
      no `summary` the row is not expandable and shows no other text. An
-     "Open all" button above the list (shown only where a row expands)
-     opens every `<details>`.
+     "Open all" button above the list, rendered only where a row expands and
+     with `hidden` (the step 6 script shows it), opens every `<details>`.
    Change `tests/test_core.sh` and `tests/test_layouts.sh` first, with the
    fixture's adapter giving three items, each with a `body` of
    issue-opening text: A (theme Alpha, date 2026-01-03, with a `summary`),
-   B (theme Beta, date 2026-01-01, no `summary`) and C (no theme, no date,
-   no `summary`):
+   B (theme Beta, date 2026-01-01, no `summary`), C (no theme, no date, no
+   `summary`) and D (theme Alpha, date 2026-01-02, no `summary`). The titles
+   change from `UPCOMING-ITEM`, so `test_build_generates_config_entries_and_data`
+   (its `data/upcoming.json` title) and `test_build_renders_site_with_hugo`
+   (its coming-next page) take the new titles:
    the home page has a card per section, "What happened this week", the
    weeknote title and extract, the weeknotes line, and no "Latest summary";
    the updates page has two tab controls labelled "By week" and "Timeline"
-   and both panels; the coming-next page lists B, A, C in that order, has
-   one `<details>` (A's), shows no `body`, has the "Open all" button, links
-   each title to its issue, and shows a theme tag on A and B and none on C.
+   and both panels; the coming-next page lists D, A, B, C in that order under `h3`s Alpha, Beta
+   and "No theme", has one `<details>` (A's), shows no `body`, has the "Open
+   all" button with `hidden`, links each title to its issue, and shows a
+   theme tag on A, B and D and none on C.
 
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
 
@@ -212,45 +220,50 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    site. The choices:
    - Theme comes from the item's `theme` (the `theme:<x>` label for GitHub
      issues). An item without one has no tag and is called "No theme" in
-     the controls.
+     the controls and as a group.
    - The date that orders the table is the item's `date`: the day the issue
      was opened. An item with no `date` comes after those with one, in
      either direction.
-   - The default view, and the only view without script, is the flat list
-     of step 5: all themes, oldest first, not grouped.
+   - The default view, and the only view without script, is step 5's:
+     all themes, grouped by theme, oldest first within each group. The
+     controls start from it, and Reset returns to it.
    - The controls apply together: first themes are filtered, then the rest
      are grouped (groups in alphabetical order of theme, "No theme" last)
      or not, then ordered by date within each group, or across the list.
    - Look: a bordered surface panel above the list holding a "Group by
-     theme" checkbox, an "Order by date" select ("Oldest first", "Newest
-     first"), a "Show themes" set of checkboxes, one per theme present
-     (with "No theme" last, only where an item lacks one), all checked at
-     first (an unchecked theme is excluded), and a "Reset" button for the
-     default view. A group is an `h3` with the theme above its rows. With
-     every theme unchecked the list is replaced by "No items match."
-     The panel uses the step 4 tokens and is shown only with script (it
-     carries `hidden`, removed by the script), and only where there are
-     two or more items.
+     theme" checkbox (checked at first), an "Order by date" select
+     ("Oldest first", "Newest first"), a "Show themes" set of checkboxes,
+     one per theme present (with "No theme" last, only where an item lacks
+     one), all checked at first (an unchecked theme is excluded), and a
+     "Reset" button. With every theme unchecked the list is replaced by "No
+     items match." The panel uses the step 4 tokens.
+   - The template renders the panel from the upcoming data, with `hidden`,
+     only where there are two or more items; the script removes `hidden`
+     from it and from "Open all", and wires them.
 
    Put the logic in `S/core/static/coming-next.js` as a function
-   `arrange(items, options)` (items with `theme`, `date` and `index`;
-   options `group`, `order`, `excluded`; returns the groups, each with a
-   theme or `null` and its items) with no use of the page, exported for
+   `arrange(items, options)` (items with `theme`, `date` and `index`, the
+   item's position in the rendered list, which breaks ties between equal
+   dates; options `group`, `order`, `excluded`; returns the groups, each with
+   a theme or `null` and its items) with no use of the page, exported for
    Node when `module` exists; the rest of the file reads the rows'
-   `data-theme` and `data-date`, builds the panel, calls `arrange` and
-   rearranges the existing rows. `S/core/layouts/coming-next/list.html.txt`
-   loads it with `<script src="{{ "coming-next.js" | relURL }}">` and
-   renders the empty panel. Add `tests/test_coming_next.sh` first. It fails
-   with a message when `command -v node` fails (the CI runner has Node
-   installed) and runs `arrange` under Node: the default order; oldest and
-   newest first with an undated item last in both; grouping, with "No
-   theme" last; excluding one theme, then all; every control at once. In
-   `tests/test_layouts.sh`, with step 5's fixture: the built
-   `coming-next/index.html` has the panel with `hidden`, a checked
-   checkbox for Alpha, Beta and "No theme", the select options and the
-   script tag; `public/coming-next.js` exists; the rows are in step 5's
-   order in the HTML, so the page reads correctly with no script. The DOM
-   wiring is not run under Node; it is checked in a browser (Verification).
+   `data-item-theme` and `data-date`, calls `arrange` and rearranges the
+   existing rows and group headings. Step 1's copy of `S/core/static/` puts
+   it in `src/static/`. `S/core/layouts/coming-next/list.html.txt` loads it
+   with `<script src="{{ "coming-next.js" | relURL }}">` and renders the
+   panel. Add `tests/test_coming_next.sh` first. It fails with a message when
+   `command -v node` fails (the CI runner has Node installed) and runs
+   `arrange` under Node: the default options give step 5's order; ungrouped,
+   oldest and newest first with an undated item last in both; grouping, with
+   "No theme" last; excluding one theme, then all; every control at once.
+   In `tests/test_layouts.sh`, with step 5's fixture: the built
+   `coming-next/index.html` has the panel with `hidden`, "Group by theme"
+   checked, a checked checkbox for Alpha, Beta and "No theme", the select
+   options and the script tag, and "Open all" with `hidden`;
+   `public/coming-next.js` exists; the rows are in step 5's order in the
+   HTML, so the page reads correctly with no script; with an adapter giving
+   one item, the page has no panel. The DOM wiring is not run under Node; it
+   is checked in a browser (Verification).
 
 7. **Move this repository's content.** Move
    `site/content/docs/opting-in.md` to `site/content/guides/opting-in.md`
@@ -289,8 +302,9 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
    or any private notes here" with "Do not write into the gitignored
    `weeknotes/` folder; everything under `site/` is public". Add
    `tile/evals/site-writing-2` first (`scenario.json`; `setup.sh` as
-   `site-writing-1`'s, with no file under `site/content/summaries/`; `task.md` asks for this week's
-   weeknote for `lantern` and says nothing about where it goes;
+   `site-writing-1`'s; `task.md` asks for this week's weeknote for `lantern`,
+   left committed on `feature-date-filter`, and says nothing about where it
+   goes;
    `criteria.json` scores that the due `site/content/summaries/<DUE>.md`
    (DUE as in `site-writing-1`) is committed on `feature-date-filter`,
    failing if none is).
@@ -325,8 +339,8 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
 
 ## Verification
 
-- `tests/run.sh` passes in CI, including the new section, adapter, link
-  and layout assertions.
+- `tests/run.sh` passes in CI, including the new section, adapter, link,
+  layout and coming-next (`tests/test_coming_next.sh`, Node) assertions.
 - A build of this repository renders the tabs in the order Overview,
   Guides, Docs, Weeknotes, Latest updates, Coming next, at `/guides/`,
   `/docs/`, `/weeknotes/`, `/updates/` and `/coming-next/`; the old
@@ -337,13 +351,15 @@ refreshing this repository's vendored `.tessl/plugins/mhclg-aaai/proj-site`.
   the choice after a reload; screen reader label is that text only.
 - Overview has no "Latest summary", has a card per section and "What
   happened this week". Latest updates has "By week" and "Timeline" tabs.
-  Coming next rows show title, link and theme tag, expand only where the issue has a
+  Coming next rows, grouped by theme and oldest first within a group, show
+  title, link and theme tag, expand only where the issue has a
   `## Site summary`, and show no other issue text.
 - In a browser, on a build with items of at least two themes and one with
-  no theme or date, in light and dark: the controls panel is shown; "Group
-  by theme", "Order by date", each theme checkbox and "Reset" act as step 6
-  says, alone and together; with script disabled the panel is hidden and
-  the list shows in the default order; the browser's network panel shows
+  no theme or date, in light and dark: the controls panel and "Open all" are shown; "Group
+  by theme", "Order by date", each theme checkbox and "Reset" (back to the
+  grouped, oldest-first default) act as step 6 says, alone and together;
+  with script disabled the panel and "Open all" are hidden and the list
+  shows grouped in the default order; with one item there is no panel; the browser's network panel shows
   no request to another site.
 - In every built page, every `#N`, every path under `docs/` or `plans/`
   that exists at HEAD and every commit ID that resolves links to GitHub;
