@@ -14,20 +14,37 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    env:
-      SITE_TILE: .tessl/plugins/mhclg-aaai/proj-site
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Install the proj-site tile
-        run: npx -y @tessl/cli@0.123.0 install --yes --accept-warnings
-      - name: Check the tile was installed
+      - name: Locate the proj-site tile
         run: |
-          [ -f "$SITE_TILE/skills/site-setup/scripts/check-pr.sh" ] || {
-            echo "::error::The proj-site tile is not at $SITE_TILE. Check that tessl.json lists mhclg-aaai/proj-site and that tessl install could fetch it."
+          set -euo pipefail
+          pkg=mhclg-aaai/proj-site
+          [ -f tessl.json ] || { echo "::error::There is no tessl.json at the repository root; it must list $pkg."; exit 1; }
+          dep=$(jq -c --arg p "$pkg" '.dependencies[$p] // empty' tessl.json)
+          [ -n "$dep" ] || { echo "::error::tessl.json does not list $pkg."; exit 1; }
+          source=$(jq -r '.source // empty' <<<"$dep")
+          version=$(jq -r '.version // empty' <<<"$dep")
+          if [ -n "$source" ] && [ "${source#file:}" != "$source" ]; then
+            tile=${source#file:}
+            what="$source in tessl.json"
+          elif [ -n "$version" ]; then
+            dir=$(mktemp -d "$RUNNER_TEMP/proj-site.XXXXXX")
+            jq -n --arg p "$pkg" --arg v "$version" \
+              '{name: "site-tile", mode: "managed", dependencies: {($p): {version: $v}}}' > "$dir/tessl.json"
+            (cd "$dir" && npx -y @tessl/cli@0.123.0 install --yes --accept-warnings) || true
+            tile="$dir/.tessl/plugins/$pkg"
+            what="version $version, from tessl.json"
+          else
+            echo "::error::tessl.json lists $pkg with neither a file: source nor a version."; exit 1
+          fi
+          [ -f "$tile/skills/site-setup/scripts/check-pr.sh" ] || {
+            echo "::error::The proj-site tile ($what) was not installed at $tile. Check that tessl install could fetch it."
             exit 1
           }
+          echo "SITE_TILE=$tile" >> "$GITHUB_ENV"
       - name: Check per-PR entry and weekly summary
         env:
           GH_TOKEN: ${{ github.token }}
