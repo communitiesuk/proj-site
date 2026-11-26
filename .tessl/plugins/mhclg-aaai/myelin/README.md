@@ -45,7 +45,7 @@ Bash(gh pr merge *)
 Add the opt-in line to .claude/settings.json (checked in, for a repository that wants it) or .claude/settings.local.json (per clone).
 <!-- End generated section. -->
 
-Decision artefacts are exempt by design: an ADR, or any branch that revises one, is always left for a human to merge regardless of this permission.
+Decision artefacts are exempt by design: an ADR, and any branch that revises or abandons one, is always left for a human to merge regardless of this permission.
 
 ## Skills
 
@@ -59,7 +59,7 @@ The workflow stages, left to right:
 And four that cut across them:
 
 5. **`skill-forge`** — the mandatory workflow for authoring a new skill, for when a plan needs a capability myelin doesn't have. Frontmatter first, then a failing eval scenario, then the body. The eval scenario is the contract.
-6. **`git-workflow`** — where work happens and how it lands: a branch per artefact, isolated into a worktree on contention, landed through a pull request as a two-parent merge so that commit structure and trailers survive. The trunk, the branch name and the integration path are derived from the repository, never read from its configuration or prose.
+6. **`git-workflow`** — where work happens and how it lands: a branch per artefact, each in its own worktree, landed through a pull request as a two-parent merge so that commit structure and trailers survive. The trunk, the branch name and the integration path are derived from the repository, never read from its configuration or prose.
 7. **`history`** — answers questions from git history, since completed and superseded artefacts leave the working tree: which paths on a topic are already closed and why, what derives from or revises a given artefact, and which deferrals are outstanding or due a recheck.
 8. **`setup`** — checks a repository against myelin's requirements and, with your consent, fixes what it flags. The same check runs automatically whenever a session starts.
 
@@ -81,11 +81,15 @@ myelin is opinionated about how work is done, so that the later, cheaper stages 
 <!-- Generated from skills/setup/manifest.json by skills/setup/scripts/render-requirements.sh at release; do not hand-edit. -->
 - **host configured for merge commits only.** The host should be configured for merge commits only — no squash, no rebase, no fast-forward — so landed work preserves its commit structure. Fix: `gh api -X PATCH repos/{owner}/{repo} -F allow_squash_merge=false -F allow_rebase_merge=false`.
 <!-- End generated section. -->
-- **Pull request by default where a remote exists.** The agent lands its own work; an ADR, and any branch that revises a decision, is left for a human to merge.
-- **Isolation on contention.** A single strand of work branches in place; a second strand in flight branches into a gitignored `.worktrees/` worktree instead of fighting for the checkout.
+- **Pull request by default where a remote exists.** The agent lands its own work; an ADR, and any branch that revises or abandons one, is left for a human to merge.
+- **A worktree for every artefact branch.** Each branch gets its own gitignored worktree at `.worktrees/<branch>`; your own checkout stays on the trunk and is not worked in, so parallel sessions never fight over it.
 - **Seeds live in a store you own** — an org file, a `seeds.md`, issues tagged on your host, or several at once — found through an optional one-line pointer in `AGENTS.md`/`CLAUDE.md`. Agents read that store to start a conversation; they never write into your private one.
 
 These are decisions with reasons behind them; the reasoning lives in `docs/adr/`.
+
+### Working in a worktree
+
+The agent's files for an artefact are under `.worktrees/<branch>`, a longer path than your checkout's, and the agent works there by absolute path. To see a change, review it in the pull request, or ask the agent to open the file. The worktree is removed when the branch merges; an experiment left unmerged keeps its worktree until you remove it.
 
 ## How this repo records its own work
 
@@ -99,7 +103,7 @@ myelin is developed using myelin, so the artefacts above are also how this repo 
 
 **Developing myelin's own skills — avoid loading a stale copy of yourself.** A tessl install is a snapshot of the *published* version, not a view of this tree, and personal scope outranks project scope — so an agent working in this repo will load a stale global install instead of your edits, with no error. (This repo has no in-repo install by default, so resolution falls straight back to the personal scope.) Before developing a skill here: ensure **no global myelin install exists** (so nothing shadows the repo), then install from the local checkout with `tessl install --watch-local`, which reinstalls as you edit. With no personal copy to outrank it, the local one is what the agent loads. See `docs/discovery/0004-skill-freshness-and-distribution.md`.
 
-**The working tree holds the current intention and nothing else.** There are no superseded ADRs, no archive folder and no completed plans: an ADR is revised in place, and a plan is deleted when its work is done. Git history is the record, and commits carry trailers (`Derives-From`, `Revises`, `Clarifies`, `Completes`, `Abandons`, `Consumed-By`, and the verdicts a revision records against each downstream: `Reconciles`, `Confirms`, `Defers`) so the relationships between artefacts stay recoverable. So an empty `plans/` means no work is in flight, not that nothing has happened — the `history` skill, `git log --follow -p` and `git log --grep` are the retrieval path. See `docs/adr/0004-where-does-history-live.md`.
+**The working tree holds the current intention and nothing else.** There are no superseded ADRs, no archive folder and no completed plans: an ADR is revised in place, and a plan is deleted when its work is done. Git history is the record, and commits carry trailers (`Derives-From`, `Revises`, `Clarifies`, `Origin`, `Completes`, `Abandons`, `Consumed-By`, and the verdicts a revision or abandonment of an ADR records against each downstream: `Reconciles`, `Confirms`, `Defers`) so the relationships between artefacts stay recoverable. So an empty `plans/` means no work is in flight, not that nothing has happened — the `history` skill, `git log --follow -p` and `git log --grep` are the retrieval path. See `docs/adr/0004-where-does-history-live.md`.
 
 ### Working on myelin itself
 

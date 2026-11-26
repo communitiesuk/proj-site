@@ -5,7 +5,9 @@
 # No test here needs a remote: every scenario is decided before the push
 # step, so every fixture is local-only and merges with host=none.
 #
-# Covers plan 0020's Step 2 list (1-13), in order.
+# Covers plan 0020's Step 2 list (1-13), in order, then plan 0023's
+# Step 3 tests 11 and 12 (14-15): an Abandons naming a deferral's origin
+# triggers it, and makes a re-defer's new origin already met.
 
 R="$TMP_ROOT/discharge"
 land() { local d="$1"; shift; (cd "$d" && bash "$SCRIPT" land "$@" 2>&1); }
@@ -17,12 +19,14 @@ D3_PATH="plans/9002-other.md"
 O3_PATH="docs/adr/9003-other-origin.md"
 COND_DEFAULT="until 9000 revises"
 
-# base DIR [fixture opts...] — a repo on dev with one outstanding,
+# base DIR [fixture opts...] — a repo on dev ignoring .worktrees/ (committed,
+# so begin leaves nothing uncommitted in the worktree) with one outstanding,
 # not-yet-due deferral already committed on trunk: Defers: D_PATH O1_PATH
 # COND_DEFAULT.
 base() {
   local dir="$1"; shift
   fixture "$dir" --trunk dev "$@" >/dev/null || return 2
+  (cd "$dir" && printf '.worktrees/\n' >> .gitignore && g add .gitignore && g commit -q -m "ignore worktrees") || return 2
   (cd "$dir" && g commit -q --allow-empty -m "$(printf 'Defer %s\n\nDefers: %s %s %s\n' "$D_PATH" "$D_PATH" "$O1_PATH" "$COND_DEFAULT")")
 }
 
@@ -190,3 +194,27 @@ t "13. already-due: a branch re-triggering an already-due origin gets visibility
   assert_contains "$out" "exit=0"
   assert_contains "$out" "due-deferrals:"
   assert_contains "$out" "D: $D_PATH"
+
+t "14. hard-stop: an Abandons trigger with no escape refuses, naming D; with Confirms: D it gets past the check (plan 0023)"
+  base "$R/t14"
+  (cd "$R/t14" && mkdir -p docs/adr && printf -- '---\ntitle: origin\n---\n' > "$O1_PATH" && g add "$O1_PATH" && g commit -q -m "Add the origin ADR")
+  wd="$(begin_on "$R/t14" "$O1_PATH")"
+  (cd "$wd" && g rm -q "$O1_PATH" && g commit -q -m "$(printf 'Abandon the origin\n\nReversed outright.\n\nAbandons: %s\n' "$O1_PATH")")
+  out="$(land "$wd"; echo "exit=$?")"
+  assert_contains "$out" "exit=2"
+  assert_contains "$out" "triggers a due deferral with no discharge verdict for:"
+  assert_contains "$out" "$D_PATH"
+  commit_trailer "$wd" "Confirms: $D_PATH"
+  out="$(land "$wd"; echo "exit=$?")"
+  assert_contains "$out" "exit=3"
+
+t "15. invalid re-defer (b) via trunk: O2 already abandoned on trunk refuses, naming D (plan 0023)"
+  base "$R/t15"
+  (cd "$R/t15" && g commit -q --allow-empty -m "$(printf 'Abandon O2\n\nAbandons: %s\n' "$O2_PATH")")
+  wd="$(begin_on "$R/t15" docs/discovery/0002-x.md)"
+  commit_first_derives "$wd" "$O1_PATH"
+  commit_trailer "$wd" "Defers: $D_PATH $O2_PATH until 9999 lands"
+  out="$(land "$wd"; echo "exit=$?")"
+  assert_contains "$out" "exit=2"
+  assert_contains "$out" "$D_PATH"
+  assert_contains "$out" "invalid re-defer"
