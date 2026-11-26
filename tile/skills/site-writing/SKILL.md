@@ -90,7 +90,7 @@ bash "$SKILL_DIR/../site-setup/scripts/check-pr.sh" --base <trunk> --head HEAD
 - Do not edit an earlier PR's entry to stand in for this one.
 - Do not name the summary from today's week number or from `%Y`; use the due week.
 - Do not leave the files uncommitted; the check reads the branch, not the working tree.
-- Do not write weeknotes or any private notes here; everything under `site/` is public.
+- Do not write into the gitignored `weeknotes/` folder; everything under `site/` is public.
 
 ## When you may deviate
 
