@@ -221,3 +221,29 @@ Both templates carry the same step, word for word.
   (step 7).
 
 ## Progress notes
+
+- 2026-11-26, steps 1-5 on branch `chore-tile-install` (#37): all 113 tests
+  pass locally and in CI. This repository's regenerated workflows took the
+  `file:tile` route in Actions ("Locate the proj-site tile" set
+  `SITE_TILE: tile`) and the Pages deploy published after merge. The PR's
+  Site check reported a missing entry only because it ran after `land` had
+  merged; the entry (named for the branch, `2026-11-26-chore-tile-install.md`,
+  because the plan's suggested name was the plan PR's entry) is on `dev`.
+- 2026-11-26, step 6: the maintainer published `0.4.0` (Public; moderation
+  passed; quality 95%, security Low). With the trunk's locate script, an
+  empty HOME, no `TESSL_*` variables and the real `npx`:
+  - pinning `0.4.0` beside `mhclg-aaai/myelin`: exit 0; the output never
+    mentions myelin; the temporary folder's plugins hold only proj-site, at
+    manifest version `0.4.0`; the workspace has no `.tessl/` and its
+    `tessl.json` is byte-identical; `site-init.sh --content-type knowledge`
+    and, with the stub source, `build.sh` built the site.
+  - `"source": "file:tilecopy"`: exit 0, `SITE_TILE=tilecopy`, no `npx`
+    call, nothing under `RUNNER_TEMP`.
+  - version `9.9.9`: exit 1, "The proj-site tile (version 9.9.9, from
+    tessl.json) was not installed at ...".
+  - proj-site not listed: exit 1, "tessl.json does not list
+    mhclg-aaai/proj-site."
+- 2026-11-26, step 7: no other project is opted in. A code search of the
+  organisation finds `mhclg-aaai/proj-site` only in this repository's
+  `tessl.json`, and myelin's `dev` has no `site/` or site workflows; the
+  myelin pilot stays with plan 0001 step 13 and will use the new templates.
