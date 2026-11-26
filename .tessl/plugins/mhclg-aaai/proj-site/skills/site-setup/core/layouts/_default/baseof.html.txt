@@ -6,9 +6,7 @@ paint, from the stored choice (localStorage, read in try/catch) or else the
 system setting. The header bar is teal and holds the project name (class
 "site") and a <button> switch named for what it does: "Dark mode" with a moon
 in light mode, "Light mode" with a sun in dark mode; it stores the choice.
-The tab strip marks the current tab with aria-current="page". */}}
-<!doctype html>
-<!doctype html>
+The tab strip marks the current tab with aria-current="page". */}}<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -62,6 +60,18 @@ pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-si
 pre { overflow-x:auto; padding:.75rem 1rem; background:var(--surface); border:1px solid var(--line); border-radius:.4rem; }
 :not(pre) > code { background:var(--surface); border:1px solid var(--line); border-radius:.25rem; padding:0 .25rem; }
 table { border-collapse:collapse; background:var(--surface); } th, td { border:1px solid var(--line); padding:.4rem .6rem; text-align:left; } th { background:var(--grey); }
+.project-title { font-size:2.5rem; padding-bottom:.4rem; border-bottom:4px solid var(--teal); display:inline-block; margin-bottom:1.25rem; }
+.section-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:1rem; margin:2rem 0; }
+a.card { display:block; color:var(--fg); text-decoration:none; }
+a.card strong { display:block; color:var(--link); font-size:1.1rem; margin-bottom:.25rem; }
+a.card:hover strong { text-decoration:underline; }
+a.card span { color:var(--muted); font-size:.95rem; }
+.inpage-tabs { display:flex; gap:.5rem; border-bottom:1px solid var(--line); margin:1.5rem 0 0; }
+.inpage-tabs a { padding:.5rem 1rem; text-decoration:none; color:var(--fg); border:1px solid transparent; border-bottom:0; border-radius:.4rem .4rem 0 0; margin-bottom:-1px; }
+.inpage-tabs a[aria-selected="true"] { background:var(--surface); border-color:var(--line); font-weight:600; }
+.coming details > summary { cursor:pointer; }
+.coming details p { margin:.5rem 0 0; }
+.open-all { font:inherit; font-size:.9rem; margin:0 0 1rem; padding:.3rem .8rem; color:var(--fg); background:var(--surface); border:1px solid var(--line); border-radius:.3rem; cursor:pointer; }
 footer { background:var(--surface); border-top:1px solid var(--line); padding:1rem 0 2rem; }
 </style>
 </head>

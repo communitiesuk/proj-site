@@ -3,6 +3,10 @@ it and no band; the overview content; a card per enabled section with its
 intro; then "What happened this week": the latest weeknote's title, linked,
 a short extract (its first paragraph as plain text, trimmed to about 200
 characters) and a line saying what weeknotes are. Left out with no weeknote. */}}
-{{ define "main" }}<h1>{{ site.Title }}</h1>{{ .Content }}
-{{ with (where site.RegularPages "Section" "weeknotes").ByDate.Reverse }}{{ with index . 0 }}
-<h2>Latest summary</h2><p><a href="{{ .RelPermalink }}">{{ .Title }}</a></p>{{ end }}{{ end }}{{ end }}
+{{ define "main" }}<h1 class="project-title">{{ site.Title }}</h1>{{ .Content }}
+<div class="section-cards">{{ range site.Menus.main }}{{ with .Page }}{{ if not .IsHome }}<a class="card" href="{{ .RelPermalink }}"><strong>{{ .Title }}</strong>{{ with .Params.intro }}<span>{{ . }}</span>{{ end }}</a>{{ end }}{{ end }}{{ end }}</div>
+{{ with (where site.RegularPages "Section" "weeknotes").ByParam "period_end" | collections.Reverse }}{{ with index . 0 }}
+<h2>What happened this week</h2>
+<p><a href="{{ .RelPermalink }}">{{ .Title }}</a></p>
+{{ $first := index (split (strings.TrimSpace .RawContent) "\n\n") 0 }}<p>{{ $first | $.RenderString | plainify | htmlUnescape | truncate 200 }}</p>
+<p class="muted">Weeknotes are a short weekly account of what the project explored, decided, built and shipped.</p>{{ end }}{{ end }}{{ end }}

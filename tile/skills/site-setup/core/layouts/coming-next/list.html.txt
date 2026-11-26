@@ -8,6 +8,24 @@ link; otherwise it shows nothing else. An "Open all" button, rendered
 hidden and only where a row expands, opens every <details>; the controls
 script shows it. No text from an issue's body other than its summary. */}}
 {{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
-{{ $items := hugo.Data.upcoming }}
-{{ if $items }}<ul class="items">{{ range sort $items "theme" }}<li>{{ .title }} {{ with .theme }}<span class="tag">{{ . }}</span>{{ end }} <span class="muted">{{ .ref }}</span></li>{{ end }}</ul>
+{{ $repo := site.Params.repository }}{{ $items := hugo.Data.upcoming }}
+{{ if $items }}
+{{/* Groups: each theme in alphabetical order, then items without one. */}}
+{{ $themes := slice }}{{ $none := slice }}{{ $expands := false }}
+{{ range $items }}{{ if .theme }}{{ $themes = $themes | append .theme }}{{ else }}{{ $none = $none | append . }}{{ end }}{{ if .summary }}{{ $expands = true }}{{ end }}{{ end }}
+{{ $groups := slice }}
+{{ range sort (uniq $themes) }}{{ $t := . }}{{ $g := slice }}{{ range $items }}{{ if eq .theme $t }}{{ $g = $g | append . }}{{ end }}{{ end }}{{ $groups = $groups | append (dict "name" $t "items" $g) }}{{ end }}
+{{ with $none }}{{ $groups = $groups | append (dict "name" "No theme" "items" .) }}{{ end }}
+<div class="coming">
+{{ if $expands }}<button type="button" class="open-all" hidden>Open all</button>{{ end }}
+{{ $n := 0 }}
+{{ range $groups }}
+{{/* Oldest date first, undated last. */}}
+{{ $dated := slice }}{{ $undated := slice }}{{ range .items }}{{ if .date }}{{ $dated = $dated | append . }}{{ else }}{{ $undated = $undated | append . }}{{ end }}{{ end }}
+{{ $rows := slice }}{{ with $dated }}{{ $rows = sort . "date" }}{{ end }}{{ range $undated }}{{ $rows = $rows | append . }}{{ end }}
+<section class="group" data-group="{{ .name }}"><h3>{{ .name }}</h3>
+<ul class="items">{{ range $rows }}{{ $url := printf "https://github.com/%s/issues/%s" $repo (strings.TrimPrefix "#" .ref) }}<li class="row" data-item-theme="{{ .theme }}" data-date="{{ .date }}" data-index="{{ $n }}">{{ $n = add $n 1 }}{{ if .summary }}<details><summary><a href="{{ $url }}">{{ .title }}</a>{{ with .theme }} <span class="tag">{{ . }}</span>{{ end }}</summary><p>{{ .summary }}</p><p><a href="{{ $url }}">Discuss on GitHub</a></p></details>{{ else }}<a href="{{ $url }}">{{ .title }}</a>{{ with .theme }} <span class="tag">{{ . }}</span>{{ end }}{{ end }}</li>{{ end }}</ul>
+</section>
+{{ end }}
+</div>
 {{ else }}<p class="muted">Nothing queued.</p>{{ end }}{{ end }}

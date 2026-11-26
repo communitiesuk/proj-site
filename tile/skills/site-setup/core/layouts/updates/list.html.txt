@@ -4,10 +4,32 @@ sections; with script one shows at a time. Timeline events link their path
 and commit ID to the commit; highlighted events are new since the last
 weeknote. */}}
 {{ define "main" }}<h1>{{ .Title }}</h1>{{ with .Params.intro }}<p class="intro">{{ . }}</p>{{ end }}{{ .Content }}
-{{ $timeline := hugo.Data.timeline }}
-{{ with $timeline }}<h2>Timeline</h2>
-<p class="muted">Explored, decided, built and shipped, read from the project's history. Highlighted items are new since the last summary.</p>
-<ul class="items">{{ range sort . "date" "desc" }}<li{{ if .recent }} class="recent"{{ end }}><time>{{ .date }}</time> <span class="tag stage stage-{{ .stage }}">{{ .stage }}</span> {{ .title }} {{ if site.Params.repository }}<a class="muted" href="https://github.com/{{ site.Params.repository }}/commit/{{ .commit }}">{{ .path }}</a> <a class="muted" href="https://github.com/{{ site.Params.repository }}/commit/{{ .commit }}">{{ .commit }}</a>{{ else }}<span class="muted">{{ .path }} {{ .commit }}</span>{{ end }}</li>{{ end }}</ul>{{ end }}
+{{ $repo := site.Params.repository }}
+<div class="inpage-tabs" role="tablist" aria-label="Views"><a role="tab" id="tab-by-week" href="#by-week" aria-controls="by-week" aria-selected="true">By week</a><a role="tab" id="tab-timeline" href="#timeline" aria-controls="timeline" aria-selected="false">Timeline</a></div>
+<section id="by-week" role="tabpanel" aria-labelledby="tab-by-week">
 <h2>Changes by week</h2>
 {{ range .Pages.GroupByParam "week" "desc" }}<h3>{{ .Key }}</h3>
-<ul class="items">{{ range .Pages.ByDate }}<li><a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.theme }} <span class="tag">{{ . }}</span>{{ end }}{{ with .Params.pr }} <a class="muted" href="https://github.com/{{ site.Params.repository }}/pull/{{ . }}">#{{ . }}</a>{{ end }}</li>{{ end }}</ul>{{ end }}{{ end }}
+<ul class="items">{{ range .Pages.ByDate }}<li><a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.theme }} <span class="tag">{{ . }}</span>{{ end }}{{ with .Params.pr }}{{ if $repo }} <a class="muted" href="https://github.com/{{ $repo }}/pull/{{ . }}">#{{ . }}</a>{{ end }}{{ end }}</li>{{ end }}</ul>{{ end }}
+</section>
+<section id="timeline" role="tabpanel" aria-labelledby="tab-timeline">
+<h2>Timeline</h2>
+<p class="muted">Explored, decided, built and shipped, read from the project's history. Highlighted items are new since the last weeknote.</p>
+{{ with hugo.Data.timeline }}<ul class="items">{{ range sort . "date" "desc" }}<li{{ if .recent }} class="recent"{{ end }}><time>{{ .date }}</time> <span class="tag stage stage-{{ .stage }}">{{ .stage }}</span> {{ .title }} {{ if $repo }}<a class="muted" href="https://github.com/{{ $repo }}/commit/{{ .commit }}">{{ .path }}</a> <a class="muted" href="https://github.com/{{ $repo }}/commit/{{ .commit }}">{{ .commit }}</a>{{ else }}<span class="muted">{{ .path }} {{ .commit }}</span>{{ end }}</li>{{ end }}</ul>{{ else }}<p class="muted">Nothing in the history yet.</p>{{ end }}
+</section>
+<script>(function () {
+  var tabs = document.querySelectorAll(".inpage-tabs a");
+  function select(id) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute("aria-controls") === id;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function (e) {
+      e.preventDefault(); select(t.getAttribute("aria-controls"));
+      history.replaceState(null, "", "#" + t.getAttribute("aria-controls"));
+    });
+  });
+  select(location.hash === "#timeline" ? "timeline" : "by-week");
+})();</script>{{ end }}
