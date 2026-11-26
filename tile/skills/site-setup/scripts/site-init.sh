@@ -23,7 +23,9 @@
 #
 # Trunk: --trunk, else origin/HEAD's target, else the first existing of dev,
 # main, master, else the current branch (a repository with no commits yet). A second run makes no changes. Prints what it created and the
-# next steps (enable Pages; raise the opt-in PR with its own entry). Works in
+# next steps (enable Pages; require the site check on the trunk with
+# require-site-check.sh, which needs admin rights; raise the opt-in PR with its
+# own entry). Never calls gh or changes repository settings. Works in
 # any tessl mode: the workflows locate the tile from tessl.json and install
 # only proj-site.
 # Exits 2 on a usage error or when not at a git repository's root; a gitignored
