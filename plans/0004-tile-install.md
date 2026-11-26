@@ -10,7 +10,7 @@ deferred_reason: null
 
 Implements [ADR 0002](../docs/adr/0002-tile-distribution.md) as revised in
 PR #35 (the CI route). Replaces the remaining steps of
-[plan 0002](0002-tile-distribution.md), whose workflow templates installed
+plan 0002, whose workflow templates installed
 from the project's committed `tessl.json`: plan 0002 is abandoned on this
 plan's own branch, and its anonymous install check is replaced by step 6. The
 myelin pilot stays with [plan 0001](0001-project-site.md) step 13.
@@ -23,9 +23,7 @@ the rest of step 6 and steps 7 and 8 land on a final branch. Each commit that
 changes `tile/` also runs `tessl install`, refreshing this repository's
 vendored `.tessl/plugins/mhclg-aaai/proj-site`.
 
-The logic that locates the tile must sit inline in each workflow template,
-because the job cannot run a script from a tile it has not yet found. Both
-templates carry the same step, word for word.
+Both templates carry the same step, word for word.
 
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
 
@@ -48,8 +46,9 @@ templates carry the same step, word for word.
      folder as the working directory, and sets `SITE_TILE` to
      `<folder>/.tessl/plugins/mhclg-aaai/proj-site`.
    - Fails, with a message naming the missing tile and `tessl.json` (and,
-     on the registry route, the version), unless `"$SITE_TILE/skills/site-setup/scripts/check-pr.sh"`
-     exists (a skipped install exits 0).
+     on the registry route, the version), when the install exits non-zero
+     or `"$SITE_TILE/skills/site-setup/scripts/check-pr.sh"` does not exist
+     (a skipped install exits 0).
    - Appends `SITE_TILE=<value>` to `$GITHUB_ENV`, so the later steps keep
      using `$SITE_TILE`.
 
@@ -68,25 +67,29 @@ templates carry the same step, word for word.
    `SITE_TILE:` line under `env`; the "Locate the proj-site tile" step runs
    before the first `bash "$SITE_TILE/` line; the step's `run` text is
    identical in both templates; no `TESSL_SHARE_USAGE_DATA`. Behavioural
-   tests extract the step's `run` script with `awk`, run it in a fixture
-   workspace with a stub `npx` first on `PATH` (logging each call, its
-   arguments and working directory, and creating, or not, the tile at
-   `.tessl/plugins/mhclg-aaai/proj-site` in its working directory), and
-   `RUNNER_TEMP` and `GITHUB_ENV` set to fixture paths:
+   tests extract the step's `run` script with `awk`, run it with
+   `bash -e`, as Actions does, in a fixture workspace with a stub `npx` first
+   on `PATH` (logging each call, its arguments and working directory, and
+   creating, or not, the tile at `.tessl/plugins/mhclg-aaai/proj-site` in its
+   working directory, with `skills/site-setup/scripts/check-pr.sh` under it),
+   and `RUNNER_TEMP` and `GITHUB_ENV` set to fixture paths outside the
+   workspace:
    - `tessl.json` pinning `0.3.0` alongside another dependency: the stub ran
      once, in a folder under `RUNNER_TEMP`, whose `tessl.json` lists only
-     proj-site at `0.3.0`; the workspace `tessl.json` is byte-identical;
+     proj-site at `0.3.0`; the logged arguments are
+     `-y @tessl/cli@0.123.0 install --yes --accept-warnings`; the workspace `tessl.json` is byte-identical;
      `GITHUB_ENV` names the temp tile.
    - `"source": "file:tile"`, the fixture having
      `tile/skills/site-setup/scripts/check-pr.sh`: exit 0, the stub's log is
      empty and nothing was created under `RUNNER_TEMP`; `GITHUB_ENV` has
      `SITE_TILE=tile`.
-   - proj-site not listed, and no `tessl.json`: exit non-zero, the message
-     names `mhclg-aaai/proj-site` and `tessl.json`, the stub's log is empty.
+   - `tessl.json` without proj-site: exit non-zero, the message names
+     `mhclg-aaai/proj-site` and `tessl.json`, the stub's log is empty.
+   - no `tessl.json`: the same.
    - proj-site listed with neither `source` nor `version`: exit non-zero, the
      message names the missing pin, the stub's log is empty.
-   - the stub exits 0 without creating the tile: exit non-zero, the message
-     names the missing tile.
+   - the stub exits 0 without creating the tile, or exits non-zero: exit
+     non-zero, the message names the missing tile.
 
    Commit: the templates and the tests.
 
@@ -94,13 +97,21 @@ templates carry the same step, word for word.
    templates unchanged, so only its header comment changes: replace "the
    workflows install the tile themselves" with a sentence that they locate
    the tile from `tessl.json` and install only proj-site. In `tile/evals/site-setup-0/criteria.json`,
-   change the workflows criterion from "run `npx -y @tessl/cli@0.123.0
-   install` and test that ... `check-pr.sh` exists" to: both workflows have
-   the "Locate the proj-site tile" step, which reads proj-site from
-   `tessl.json` and installs only that one dependency in a temporary folder,
-   and `tessl.json` keeps `"mode": "managed"`, and rewrite the FAILS IF
-   clause to match (a workflow missing the step, installing the project's
-   other dependencies, or `tessl.json` switched out of managed mode). Leave
+   replace the "Both workflows, with the trunk substituted" criterion's
+   `description` with:
+
+   > `.github/workflows/site-check.yml` and `.github/workflows/site-pages.yml`
+   > are committed on `dev`; the Pages workflow contains `branches: [dev]` and
+   > no `__TRUNK__`; both have a "Locate the proj-site tile" step that reads
+   > `mhclg-aaai/proj-site` from `tessl.json`, installs only that dependency in
+   > a temporary folder, and tests that
+   > `$SITE_TILE/skills/site-setup/scripts/check-pr.sh` exists; `git show
+   > dev:tessl.json` keeps `"mode": "managed"`. FAILS IF: either workflow is
+   > missing, the trunk is wrong or unsubstituted, a workflow lacks the step,
+   > installs the project's other dependencies or skips the tile check, or
+   > `tessl.json` was switched out of managed mode.
+
+   Leave
    `setup.sh` as it is. Commit: the script comment and `criteria.json`.
 
 3. **This repository's workflows.** `tessl.json` stays vendored, with
@@ -123,7 +134,8 @@ templates carry the same step, word for word.
      `file:` source as it stands, or else installs only proj-site at the
      listed version into a temporary folder with the pinned CLI, never the
      project's other dependencies; the job fails with a message when
-     `tessl.json` does not list proj-site or the tile did not arrive; CI
+     proj-site is not usable (not listed in `tessl.json`, or listed with no
+     `file:` source or version) or the tile did not arrive; CI
      needs network access to the tessl registry unless proj-site is pinned to
      a local path. Add a paragraph, "Projects already opted in": `site-init.sh`
      never overwrites existing files, so such a project deletes
@@ -156,7 +168,7 @@ templates carry the same step, word for word.
    visibility is Public. Then, in throwaway managed-mode repos with an empty
    HOME and no `TESSL_*` variables, run the "Locate the proj-site tile"
    script extracted from the trunk's `site-check.yml.txt`, with `RUNNER_TEMP`
-   and `GITHUB_ENV` set to fixture paths and the real `npx`:
+   and `GITHUB_ENV` set to fixture paths outside the repo and the real `npx`:
    - `tessl.json` pinning `0.4.0` and `mhclg-aaai/myelin` as the other
      dependency: the script exits 0; its output never mentions myelin; the
      temporary folder's `.tessl/plugins/` holds only `mhclg-aaai/proj-site`;
@@ -164,7 +176,7 @@ templates carry the same step, word for word.
      folder and its `tessl.json` is byte-identical; `GITHUB_ENV` names the
      tile; running `site-init.sh --content-type knowledge` and, after
      setting `upcoming.source: stub` in `site/project.yaml`,
-     `core/build.sh . out` from `$SITE_TILE` in the repo produce
+     `bash "$SITE_TILE/skills/site-setup/core/build.sh" . out` in the repo produce
      `site/project.yaml` and a built `out/public/`.
    - `"source": "file:<folder>"` pointing at a copy of the tile: exit 0,
      `npx` is not invoked (a logging wrapper first on `PATH` stays empty),
@@ -180,7 +192,7 @@ templates carry the same step, word for word.
    regenerates its workflows as step 4's README paragraph says, in a PR with
    its own entry; the myelin pilot stays with plan 0001 step 13. On this
    repository (regenerated in step 3), the workflows run green on a PR
-   (Actions). On each other such project, record in Progress notes whether
+   (Actions) and its Pages deploy publishes after merge. On each other such project, record in Progress notes whether
    its check workflow now passes and fails as the site-check expects
    (without an entry, with one), and its Pages deploy publishes. If a
    project cannot be reached, or there is none, record that and why.
@@ -191,7 +203,7 @@ templates carry the same step, word for word.
 
 ## Verification
 
-- `tests/run.sh` passes in CI, including the new template, init and
+- `tests/run.sh` passes in CI, including the new template and
   behavioural tests.
 - Both templates carry the same "Locate the proj-site tile" step, and no job
   `env` sets `SITE_TILE`.
