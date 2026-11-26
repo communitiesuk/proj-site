@@ -64,12 +64,13 @@ branches are not required to be up to date with the trunk.
      answering 403 or 404 "Not Found", no network), so the state is unknown:
      change nothing, print the `gh` error to stderr and the `Set it by hand:`
      line above to stdout, no `gh api` text, exit 1.
-   - A usage error, no `--trunk` outside a git repository, no `--repo` and no
-     origin remote, or no `--repo` away from a git repository's root: exit 2.
+   - A usage error, no `--trunk` outside a git repository, or no `--repo` and no
+     origin remote: exit 2.
 
    Change `tests/` first. Add `tests/stub-gh.sh`, a stub `gh` that appends
    each call (method, path, stdin) to `$STUB_GH_DIR/calls` and answers from
-   fixture files in `$STUB_GH_DIR`, copying `gh api`'s failure form: exit 1,
+   fixture files in `$STUB_GH_DIR`, one file per response named for the request,
+   committed under `tests/stub-gh/`, copying `gh api`'s failure form: exit 1,
    `gh: <message> (HTTP <code>)` on stderr, the JSON body on stdout. Add
    `tests/test_require_check.sh`, which puts the stub first on `PATH` as
    `gh` and uses a fixture repo with origin
@@ -87,7 +88,7 @@ branches are not required to be up to date with the trunk.
    comment, in the style of `site-init.sh`. Run `tests/run.sh require_check`
    until it passes, then `tests/run.sh`.
 
-   Commit: the script, the stub and the tests.
+   Commit: the script, the stub, its fixtures and the tests.
 
 > **Directive for the implementer**: this step will write or modify executable code. Load the `test-first-workflow` skill before writing the code (docstrings → failing tests → code).
 
@@ -110,7 +111,8 @@ branches are not required to be up to date with the trunk.
    GitHub Pages") a step 7, "Offer to require the site check":
    - Ask the user to confirm making the site check a required status on the
      trunk, saying that a pull request then cannot merge while the check
-     fails, that branches need not be up to date, that on an unprotected
+     fails, that it adds only the site check, sets no up-to-date requirement and
+     keeps existing protection settings, that on an unprotected
      trunk this also blocks force pushes to and deletion of the trunk, and
      that administrators can still bypass it.
    - On confirmation, run
@@ -120,10 +122,12 @@ branches are not required to be up to date with the trunk.
      line or `Set it by hand:` line it printed; 2, a usage error, so fix the
      invocation and run again; 3, the trunk's protection has no required
      status checks, so list the `Set it by hand:` line as a next step.
-   - Without confirmation, list the step as a next step with that command.
+   - Without confirmation, list the step as a next step with the script's command line.
 
    Add to "Do not": do not require the check without the user's confirmation,
-   and do not change any other branch-protection setting. Run `tests/run.sh`; confirm `tile/evals/site-setup-0/` needs no change (its
+   and do not change any other branch-protection setting.
+
+   Run `tests/run.sh`; confirm `tile/evals/site-setup-0/` needs no change (its
    task skips anything needing GitHub, and no criterion mentions branch
    protection) by reading `criteria.json` and `task.md`.
 
@@ -134,10 +138,11 @@ branches are not required to be up to date with the trunk.
      introduction, immediately before "### Projects already opted in", add a
      paragraph: the opt-in offers to make the site check (the `check`
      job in `site-check.yml`) a required status on the trunk, through branch
-     protection, with the user's confirmation, and lists it as a next step
-     when declined or when admin rights are missing; it can be run alone with
-     `require-site-check.sh --trunk <branch>`; only the site check is
-     required and branches need not be up to date; on an unprotected trunk it
+     protection, with the user's confirmation, and otherwise lists it as a
+     next step; it can be run alone with
+     `require-site-check.sh --trunk <branch>`; it adds only the site
+     check, sets no up-to-date requirement and keeps existing protection
+     settings; on an unprotected trunk it
      creates protection, which also blocks force pushes to and deletion of the
      trunk; administrators can still bypass it; a
      project using myelin's `land` finds that its merge straight after
@@ -176,27 +181,28 @@ branches are not required to be up to date with the trunk.
    `mhclg-aaai/proj-site` at `0.5.0`, and check that
    `.tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/require-site-check.sh`
    exists, that `bash` on it with `--repo example/widget --trunk dev`, with
-   `tests/stub-gh.sh` copied out as `gh` first on `PATH` with its unprotected
-   fixtures, logs the unprotected-case `PUT`, and that `site-init.sh` run in a
+   `tests/stub-gh.sh` copied out as `gh` first on `PATH` and `STUB_GH_DIR`
+   set to a copy of the unprotected set in `tests/stub-gh/`, logs the unprotected-case `PUT`, and that `site-init.sh` run in a
    throwaway git repo prints the require-the-check next step. Record the
    results in Progress notes on the final branch. If the `0.5.0` install
    fails, stop and report.
 
 7. **Prove it on a real repository.** First read
    `gh api repos/communitiesuk/proj-site/branches/dev/protection` and record
-   it. In a public throwaway repository the maintainer owns (never this
+   it. In public throwaway repositories the maintainer owns (never this
    repository; branch protection needs a public repository or a paid plan),
-   with the published `0.5.0`
-   installed, opted in by the skill (`site-init.sh --trunk dev`) with its
-   workflows merged on `dev`:
-   - In one repository, run the opt-in through the `site-setup` skill:
-     decline the offer, and record that it asked for confirmation first, did
+   with the published `0.5.0` installed:
+   - On a fresh repository, run the opt-in itself through the `site-setup`
+     skill (`site-init.sh --trunk dev`): decline the offer, and record that it asked for confirmation first, did
      not run the script, and listed the step as a next step. Ask for the offer
      again and confirm; record that the script ran only after the
      confirmation. Confirm with
      `gh api repos/<owner>/<repo>/branches/dev/protection/required_status_checks`
-     that `contexts` holds `check` and `strict` is `false`. Run
-     `require-site-check.sh --trunk dev` directly: it reports no change.
+     that `contexts` holds `check` and `strict` is `false`. Merge its
+     workflows on `dev`. Read `dev`'s protection, run
+     `require-site-check.sh --trunk dev` directly, and read it again: it
+     reports no change and the two reads are identical. The bullets below
+     need a repository already opted in with its workflows merged on `dev`.
    - Open a PR with no per-PR entry; once the check has failed,
      `gh pr view --json mergeStateStatus` shows `BLOCKED`, and
      `gh pr merge` is refused. Add the entry, and the weekly summary if the
@@ -206,8 +212,9 @@ branches are not required to be up to date with the trunk.
      different required context, the script adds `check` and keeps that
      context.
    - With a token lacking admin rights (or a repository the account only has
-     write access to), the script exits 1, changes nothing and prints the
-     `Set it by hand:` line and no `gh api` text.
+     write access to), the script exits 1 and prints the
+     `Set it by hand:` line and no `gh api` text; `dev`'s protection, read
+     with an admin token before and after, is identical.
 
    Read the `proj-site` `dev` protection again, and record the results
    and both reads in Progress notes. Delete the throwaway repositories
