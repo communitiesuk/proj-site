@@ -26,7 +26,7 @@ Making the plugin public leaks nothing from projects: information flows one way,
 
 ## Decision
 
-**CI route.** CI installs the tile the same way a developer does: it installs the tessl CLI and runs `tessl install` from the project's committed `tessl.json`.
+**CI route.** CI installs only the proj-site tile, in a temporary folder, from a one-dependency `tessl.json` pinned to the version the project's `tessl.json` lists, and points the site build there. It never installs the project's other dependencies. When the project pins proj-site to a local path, CI uses that folder directly. When the project does not list proj-site, CI fails with a clear message.
 
 **Public plugin.** The proj-site plugin is public on the tessl registry, so an anonymous install works.
 
@@ -34,6 +34,8 @@ Making the plugin public leaks nothing from projects: information flows one way,
 
 ## Alternatives considered
 
+- **Install from the project's committed `tessl.json`** (this ADR's first route; reversed). It downloads every public dependency on every PR and deploy, relies on tessl skipping private ones with a warning, which tessl could change, and runs code the job does not need while a GitHub token is present.
+- **Named install in the project** (`tessl install` of proj-site at its pinned version). Not chosen: simpler, but it still reads the project's other dependencies and rewrites the formatting of `tessl.json`.
 - **Require vendored mode.** Rejected: it conflicts with myelin's principles, and proj-site should not be opinionated about tessl mode.
 - **Keep the plugin private and store a tessl API key as a CI secret.** Not chosen: every opted-in project would need the secret, keys expire after 30 days unless set otherwise, and it adds an upkeep job. Which of `TESSL_TOKEN` or `TESSL_API_TOKEN` the CLI reads was not confirmed.
 - **Check the tile out of the proj-site repo by tag.** Not chosen: proj-site has no release tags, every release would need one, and installs pinned to a commit would need separate handling.
