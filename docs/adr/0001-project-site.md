@@ -38,7 +38,7 @@ The site's stakeholder content replaces the weeknotes and is written for a publi
 **Writing and enforcement are separate.**
 - Writing is done by a skill triggered before raising a PR. Skills are cross-agent through tessl.
 - Enforcement is a CI check on `pull_request`, with no agent involved. A script fails the PR if the per-PR entry is missing, or if the weekly summary is due and missing.
-- At opt-in, the site-setup skill offers to make the site check a required status on the trunk, through branch protection. It does so only with the user's confirmation and admin rights; otherwise the step is listed as a next step, as with enabling Pages. Only the site check is required: a project's own checks are the project's to choose. Branches are not required to be up to date with the trunk.
+- At opt-in, the site-setup skill offers to make the site check a required status on the trunk, through branch protection, and the guides document the step. It does so only with the user's confirmation and admin rights; otherwise the step is listed as a next step. Only the site check is required. Branches are not required to be up to date with the trunk.
 - A Claude Code hook may run the skill as an optional speed-up only. Claude-only support for it is acceptable at first.
 
 **Deploy.** The site is deployed to GitHub Pages by a GitHub workflow.
@@ -57,7 +57,7 @@ The site's stakeholder content replaces the weeknotes and is written for a publi
 - **A harness-specific hook alone, or git hooks alone.** Rejected in favour of the skill-plus-CI split. Git hooks are agent-neutral but cannot write prose without calling a specific agent's CLI.
 - **Hand-written-only or fully derived user content.** Rejected in favour of the mix above.
 - **Only documenting branch protection**, leaving the guides to tell projects to protect the trunk themselves and the skill to leave repo settings alone. Not chosen: the opt-in offers it instead.
-- **Requiring branches to be up to date with the trunk** (strict). Not chosen: it would close the gap where PRs pass before Thursday and merge after it without a weeknote, but the human does not count that as a gap. A weeknote can be triggered manually, and a skipped week is skipped. Strict would also make every PR merge the trunk in and rerun CI.
+- **Requiring branches to be up to date with the trunk** (strict). Not chosen: it would close the gap where PRs pass before Thursday and merge after it without a weeknote, but the human does not count that as a gap. A weeknote can be triggered manually.
 - **Other generators.** Quarto (heavier install, data-science lean), MkDocs Material or Zensical (Python-centred; the state of MkDocs 1.x versus Zensical is unverified), Astro Starlight (adds Node and a JavaScript toolchain to every opted-in project) and Jekyll (Ruby, aging ecosystem, weak collections) were not chosen.
 
 ## Consequences
@@ -65,7 +65,6 @@ The site's stakeholder content replaces the weeknotes and is written for a publi
 - Opting in costs a project the installed skills and scripts, a CI check, and a Pages workflow.
 - Because the CI check only enforces that the summary exists, the summary is written by an agent running the skill, not by CI.
 - Every PR on an opted-in project carries a per-PR entry.
-- With the check required, a PR cannot merge on a failing check. myelin's `land` merges straight after opening the PR, without waiting for checks, so proj-site's compatibility with `land` depends on a myelin change (myelin #216). Until then the check runs on already-merged PRs and can fail falsely.
-- Out of scope here: myelin's setup check of trunk protection (myelin #217).
+- Until myelin #216 is fixed, `land` cannot merge into a trunk where the check is required: it merges straight after opening the PR, and the merge is refused while checks run.
 - Settled by the plan within this decision: the Hugo spike's outcome; which language adapters come first; which sections each content type enables.
-- Out of scope for now: hook support beyond Claude Code; where an agent would run if summaries were ever produced in CI.
+- Out of scope for now: myelin's setup check of trunk protection (myelin #217); hook support beyond Claude Code; where an agent would run if summaries were ever produced in CI.
