@@ -1,7 +1,11 @@
 # Installed by proj-site's site-init.sh. Builds the project site and deploys
 # it to GitHub Pages on every push to the trunk. Enable Pages for the
-# repository with "GitHub Actions" as the source. Installs the tile from the
-# project's tessl.json, in any tessl mode.
+# repository with "GitHub Actions" as the source. Locates the proj-site tile
+# from the project's tessl.json, in any tessl mode: a `file:` source is used as
+# it stands; otherwise only proj-site, at the listed version, is installed
+# into a temporary folder, never the project's other dependencies. Fails with
+# a message when proj-site is not listed or not pinned, or the tile did not
+# arrive.
 name: Site
 on:
   push:

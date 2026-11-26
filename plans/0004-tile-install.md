@@ -1,6 +1,6 @@
 ---
 title: Install only the proj-site tile in CI, from a temporary folder
-status: draft
+status: in-progress
 adr: 0002
 date: 2026-11-26
 deferred_reason: null

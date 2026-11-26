@@ -1,6 +1,10 @@
 # Installed by proj-site's site-init.sh. Fails a PR that adds no per-PR entry,
 # or that leaves a due weekly summary missing (see the site-writing skill).
-# Installs the tile from the project's tessl.json, in any tessl mode.
+# Locates the proj-site tile from the project's tessl.json, in any tessl mode:
+# a `file:` source is used as it stands; otherwise only proj-site, at the
+# listed version, is installed into a temporary folder, never the project's
+# other dependencies. Fails with a message when proj-site is not listed or not
+# pinned, or the tile did not arrive.
 name: Site check
 on:
   pull_request:
