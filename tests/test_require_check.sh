@@ -28,16 +28,14 @@ calls() { cat "$TMP/stub/calls"; }
 test_unprotected_trunk_gets_protection_requiring_check() {
   use_set unprotected; req
   assert_eq 0 "$rc" "exit; stderr: $err"
-  assert_eq "GET $PROT
-PUT $PROT $P" "$(calls)"
+  assert_eq "$(printf 'GET %s \nPUT %s %s' "$PROT" "$PROT" "$P")" "$(calls)"
   assert_eq "Required the site check on dev." "$out"
 }
 
 test_existing_required_checks_gain_check() {
   use_set with-checks; req
   assert_eq 0 "$rc" "exit; stderr: $err"
-  assert_eq "GET $PROT
-POST $PROT/required_status_checks/contexts $C" "$(calls)"
+  assert_eq "$(printf 'GET %s \nPOST %s/required_status_checks/contexts %s' "$PROT" "$PROT" "$C")" "$(calls)"
   assert_eq "Added the site check to the required checks on dev." "$out"
 }
 
