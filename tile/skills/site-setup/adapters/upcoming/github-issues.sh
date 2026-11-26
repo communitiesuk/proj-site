@@ -6,9 +6,14 @@
 # Reads `repository` from <project-dir>/site/project.yaml (a `key: value`
 # line); falls back to `gh repo view --json nameWithOwner` when absent.
 # Lists open issues (up to 100) and writes a JSON array to stdout:
-#   [{"title": str, "ref": "#<number>", "state": "open", "theme": str}]
+#   [{"title": str, "ref": "#<number>", "state": "open", "theme": str,
+#     "summary": str, "date": "YYYY-MM-DD"}]
 # `theme` is the first label named `theme:<x>`, prefix removed and trimmed,
-# else "". An empty issue list gives [].
+# else "". `summary` is the issue body's section headed `## Site summary`:
+# the text from the line after that heading up to the next heading or the
+# end, trimmed; "" when there is no such heading. Nothing else from the body
+# is output. `date` is the day the issue was opened (UTC), the first ten
+# characters of `createdAt`. An empty issue list gives [].
 #
 # Env: SITE_GH  the gh command to run (default: gh); tests substitute a stub.
 # Exit: non-zero with a message on stderr when gh fails.
