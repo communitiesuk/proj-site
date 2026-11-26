@@ -41,7 +41,7 @@ A mockup built from real site content, over several rounds of feedback, settled 
 
 **Coming next.** Each row is the item's title, link and a tag with its theme. The upcoming-work source supplies an optional site summary per item; a row expands in place only where one exists. The GitHub-issues adapter takes it from a section written for the site. An issue's opening text is never shown.
 
-The table lets users group by theme, order by date, and include or exclude themes. Filtering is by theme only for now.
+The table lets users group by theme, order by date, and include or exclude themes.
 
 ## Alternatives considered
 
@@ -57,7 +57,7 @@ The table lets users group by theme, order by date, and include or exclude theme
 - Every opted-in project gets the new presentation.
 - Issue authors can opt text into the public site.
 - Left to the plan: the content folders; when Guides and Docs appear, within ADR 0001's content-type rule; the opt-in marker in an issue; where an item's theme comes from, and items without one; which date orders the table; the default view; whether and how the controls combine; how the controls look; the link from an expanded row to the full GitHub discussion; the "Open all" control; section intro lines; the overview title treatment.
-- Out of scope: filter criteria other than theme; per-project theming (#22); a guard against sensitive text (#24); which issues count as coming next (#21).
+- Out of scope: filter criteria other than an item's theme; per-project theming (#22); a guard against sensitive text (#24); which issues count as coming next (#21).
 - The colours come from the template, not the intranet palette page, which could not be fetched; they may need revisiting if that page differs.
 
 ## References
