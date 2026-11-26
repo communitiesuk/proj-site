@@ -25,8 +25,8 @@
 # main, master, else the current branch (a repository with no commits yet). A second run makes no changes. Prints what it created and the
 # next steps (enable Pages; raise the opt-in PR with its own entry). Works in
 # any tessl mode: the workflows install the tile themselves.
-# Exits 2 on a usage error or when not at a git repository's root; no existing
-# weeknotes are migrated.
+# Exits 2 on a usage error or when not at a git repository's root; a gitignored
+# weeknotes/ folder is not migrated.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 tile=$(cd "$here/.." && pwd)

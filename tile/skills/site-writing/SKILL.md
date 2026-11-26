@@ -7,8 +7,10 @@ description: Writes the public project site's stakeholder content in a project o
 
 The project's public site tells stakeholders what was explored, decided, built and shipped. You write two kinds of file for it, both committed on the branch before the pull request is raised, so they are reviewed with the change:
 
-- a **per-PR entry**, on every branch;
-- a **weekly summary**, on the first branch raised once one is due.
+- a **per-PR entry**, on every branch, shown on the site's **Latest updates** tab;
+- a **weekly summary**, the site's **weeknote**, on the first branch raised once one is due, shown on the **Weeknotes** tab. Asked to write "the week's weeknote", write this file.
+
+The committed folders keep their names: `site/content/changes/` builds Latest updates (`/updates/`) and `site/content/summaries/` builds Weeknotes (`/weeknotes/`). The **Coming next** tab lists open issues; it shows an issue's text only from a section headed `## Site summary` in its body, which the issue's author writes for the public. You never write it from here.
 
 A CI check (`skills/site-setup/scripts/check-pr.sh` in this tile) fails the pull request when either is missing. It only checks that the files exist; what they say is yours to get right.
 
@@ -73,7 +75,7 @@ Commit messages are source material, not text to copy: read them for what change
    ```
 
    Draw "Completed" from the per-PR entries and the git history in the period, and "In flight / queued" from open issues (`gh issue list --state open`). Where `gh` is unavailable, use the git history and the plans in `plans/` for both sections, and leave `counts` at what git shows. Group by theme, not by artefact type. Apply the public content rules.
-4. Asked to write the summary on demand when the due week's file already exists, update that file rather than creating another.
+4. Asked to write the summary or weeknote on demand when the due week's file already exists, update that file rather than creating another.
 5. Commit the summary on the branch, separately from the entry.
 
 ## 3. Check before raising
