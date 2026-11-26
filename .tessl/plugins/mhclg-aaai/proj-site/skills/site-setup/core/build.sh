@@ -89,8 +89,10 @@ run_adapter() {
   else return 127; fi
 }
 
-section_index() { # dir title
-  [ -f "$1/_index.md" ] || printf -- '---\ntitle: %s\n---\n' "$2" > "$1/_index.md"
+section_index() { # dir title [intro]
+  [ -f "$1/_index.md" ] && return 0
+  if [ -n "${3:-}" ]; then printf -- '---\ntitle: %s\nintro: %s\n---\n' "$2" "$3" > "$1/_index.md"
+  else printf -- '---\ntitle: %s\n---\n' "$2" > "$1/_index.md"; fi
 }
 
 # link_pages <dir>: run link_github over every Markdown file under <dir>, in place.
@@ -144,7 +146,7 @@ pr: $pr"
   EXTRA=$extra awk 'NR == 1 { print; next } !done && $0 == "---" { print ENVIRON["EXTRA"]; done = 1 } { print }' "$f" \
     | link_github "$repo" "$project" > "$dest"
 done
-section_index "$content/updates" "Latest updates"
+section_index "$content/updates" "Latest updates" "What changed, pull request by pull request, by week and on a timeline."
 
 # Weeknotes.
 mkdir -p "$content/weeknotes"
@@ -157,14 +159,14 @@ for f in "$sitec"/summaries/*.md; do
   e=$(frontmatter_get "$f" period_end)
   [ -z "$e" ] || [[ "$e" < "$latest_end" ]] || latest_end=$e
 done
-section_index "$content/weeknotes" Weeknotes
+section_index "$content/weeknotes" Weeknotes "A short weekly account of what the project explored, decided, built and shipped."
 
 # Timeline.
 bash "$here/timeline.sh" "$project" "$latest_end" > "$src/data/timeline.json" \
   || { echo "build.sh: timeline failed" >&2; exit 1; }
 
 # Coming next.
-mkdir -p "$content/coming-next"; section_index "$content/coming-next" "Coming next"
+mkdir -p "$content/coming-next"; section_index "$content/coming-next" "Coming next" "Work the project plans to do next."
 if [ -n "$upsrc" ]; then
   rc=0; run_adapter upcoming "$upsrc" > "$src/data/upcoming.json" || rc=$?
   [ "$rc" -ne 127 ] || { echo "build.sh: upcoming adapter not found: $upsrc" >&2; exit 1; }
@@ -178,7 +180,7 @@ guides=0; docs=0
 if [ "$ctype" != code ]; then
   guides=1; mkdir -p "$content/guides"
   [ -d "$sitec/guides" ] && cp -R "$sitec/guides/." "$content/guides/" && link_pages "$content/guides"
-  section_index "$content/guides" Guides
+  section_index "$content/guides" Guides "How to use the project, step by step."
 fi
 
 # Docs: hand-written pages (knowledge|both) and reference (code|both).
@@ -202,7 +204,7 @@ if [ "$ctype" != knowledge ]; then
   done
   section_index "$content/docs/reference" Reference
 fi
-[ "$docs" = 1 ] && section_index "$content/docs" Docs
+[ "$docs" = 1 ] && section_index "$content/docs" Docs "Technical documentation, including reference generated from the code."
 
 # Tabs, in order: "address|name".
 menu="/|Overview"
