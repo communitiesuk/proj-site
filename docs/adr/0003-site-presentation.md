@@ -41,22 +41,22 @@ A mockup built from real site content, over several rounds of feedback, settled 
 
 **Coming next.** Each row is the item's title, link and a tag with its theme. The upcoming-work source supplies an optional site summary per item; a row expands in place only where one exists. The GitHub-issues adapter takes it from a section written for the site. An issue's opening text is never shown.
 
-The table lets users group by theme, order by date, and include or exclude themes. Filtering is by theme only for now; other criteria may come later. The controls combine: filter, then group, with date order inside each group.
+The table lets users group by theme, order by date, and include or exclude themes. Filtering is by theme only for now.
 
 ## Alternatives considered
 
 - **"Longform docs" and "Tech docs" as labels.** Replaced by Guides and Docs. "How-to guides" is long for a tab, "Using [project]" changes the label per project, "Handbook" sounds odd for a code project.
 - **A grey band behind the title only.** Replaced by a whole-page grey background.
 - **A switch labelled with the current mode** is redundant. Following only the system setting, or always light, ignores that people work in different lighting.
-- **Coming next showing an issue's opening** (unreviewed; some open with internal notes), or separate description pages (they would send readers to a sentence or two).
-- **Coming next rows as title and link only, with no other text from the item.** Adopted first; reversed because the theme tag tells readers what an item belongs to and is the basis for grouping and filtering.
+- **Coming next as title and link only,** showing an issue's opening (unreviewed; some open with internal notes), or separate description pages (they would send readers to a sentence or two).
+- **Coming next rows showing no text beyond title, link and the opt-in summary.** Adopted first; reversed because the human chose to keep the theme tag the live site already shows.
 - **Keeping the old web addresses.** The address bar should match the tab.
 
 ## Consequences
 
 - Every opted-in project gets the new presentation.
 - Issue authors can opt text into the public site.
-- Left to the plan: the content folders; when Guides and Docs appear, within ADR 0001's content-type rule; the opt-in marker in an issue; which date orders the table; the default view; how the controls look; the link from an expanded row to the full GitHub discussion; the "Open all" control; section intro lines; the overview title treatment.
+- Left to the plan: the content folders; when Guides and Docs appear, within ADR 0001's content-type rule; the opt-in marker in an issue; where an item's theme comes from, and items without one; which date orders the table; the default view; whether and how the controls combine; how the controls look; the link from an expanded row to the full GitHub discussion; the "Open all" control; section intro lines; the overview title treatment.
 - Out of scope: filter criteria other than theme; per-project theming (#22); a guard against sensitive text (#24); which issues count as coming next (#21).
 - The colours come from the template, not the intranet palette page, which could not be fetched; they may need revisiting if that page differs.
 
