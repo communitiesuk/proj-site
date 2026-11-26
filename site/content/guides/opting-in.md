@@ -11,6 +11,7 @@ weight: 1
   dependencies are never installed.
 - Bash 4 or later, `git`, `gh` and `jq`. The Pages workflow installs Hugo
   itself.
+- Admin rights on the repository, for step 5 only.
 
 ## Steps
 
@@ -37,7 +38,21 @@ weight: 1
    `site/content/docs/` (the Docs tab).
 4. Enable GitHub Pages for the repository, with **GitHub Actions** as the
    source.
-5. Raise the opt-in pull request with its own per-PR entry.
+5. Make the site check required on the trunk, so a pull request cannot merge
+   while it fails. The required status is the job `check` in `site-check.yml`.
+   Run:
+
+   ```sh
+   bash .tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/require-site-check.sh --trunk <branch>
+   ```
+
+   or, in the repository's Settings, Branches, turn on "Require status checks
+   to pass" and select `check`. It adds only that check and keeps any existing
+   protection settings. On an unprotected trunk it also blocks force pushes to
+   and deletion of the trunk, and administrators can still bypass it. If the
+   project uses myelin's `land`, its immediate merge is refused while the
+   check runs, until myelin #216 is fixed.
+6. Raise the opt-in pull request with its own per-PR entry.
 
 A gitignored `weeknotes/` folder, kept private on purpose, is not migrated:
 the first public weeknote is written from the project's history.

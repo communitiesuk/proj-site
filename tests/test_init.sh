@@ -26,6 +26,8 @@ test_init_creates_project_and_workflows() {
   assert_not_contains "$pages" "__TRUNK__"
   assert_no_path .claude/settings.json
   assert_contains "$out" "Pages"
+  assert_contains "$out" "  3. Require the site check on dev (needs admin rights): bash .tessl/plugins/mhclg-aaai/proj-site/skills/site-setup/scripts/require-site-check.sh --trunk dev"
+  assert_contains "$out" "  4. Raise the opt-in PR"
   for f in site/project.yaml site/content/overview.md .github/workflows/site-check.yml .github/workflows/site-pages.yml; do
     assert_contains "$out" "  $f"
   done
@@ -35,7 +37,8 @@ test_init_detects_python_and_trunk() {
   make_target "$TMP/w"; cd "$TMP/w"
   mkdir src && echo 'x = 1' > src/a.py && commit_at . 2026-01-02T00:00:00Z -m py
   git branch -m dev main
-  init >/dev/null
+  out=$(init)
+  assert_contains "$out" "require-site-check.sh --trunk main"
   assert_eq "both" "$(. "$TILE/core/lib.sh"; yaml_get site/project.yaml content_type)"
   assert_eq "python" "$(. "$TILE/core/lib.sh"; yaml_get site/project.yaml languages)"
   assert_contains "$(cat .github/workflows/site-pages.yml)" "branches: [main]"
