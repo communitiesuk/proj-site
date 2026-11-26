@@ -30,11 +30,29 @@ weight: 1
    pull request before the per-PR entry exists. Running it again changes
    nothing.
 
-3. Edit `site/content/overview.md`, and add long-form guides under
-   `site/content/docs/`.
+3. Edit `site/content/overview.md`. Add step-by-step guides under
+   `site/content/guides/` (the Guides tab) and technical documentation under
+   `site/content/docs/` (the Docs tab).
 4. Enable GitHub Pages for the repository, with **GitHub Actions** as the
    source.
 5. Raise the opt-in pull request with its own per-PR entry.
 
-Existing weeknotes are not migrated: the first weekly summary is written from
-the project's history.
+A gitignored `weeknotes/` folder, kept private on purpose, is not migrated:
+the first public weeknote is written from the project's history.
+
+## Showing a summary on Coming next
+
+The Coming next tab lists open issues by title, link and theme (the issue's
+first `theme:<name>` label). It shows no text from an issue unless the
+issue's author opts some in, with a section headed `## Site summary` in the
+issue body:
+
+```markdown
+## Site summary
+
+Readers will be able to filter the list by date.
+```
+
+The text up to the next heading becomes the row's expandable summary.
+Nothing else in the issue appears on the site, so write that section for a
+public reader.
