@@ -1,3 +1,12 @@
+{{/* Base layout (ADR 0003). CSS and scripts are inline; the page makes no
+request to another site. Colours are tokens on :root, redefined for dark mode
+under :root[data-theme="dark"] and, without script, under
+prefers-color-scheme. A script in <head> sets data-theme on <html> before
+paint, from the stored choice (localStorage, read in try/catch) or else the
+system setting. The header bar is teal and holds the project name (class
+"site") and a <button> switch named for what it does: "Dark mode" with a moon
+in light mode, "Light mode" with a sun in dark mode; it stores the choice.
+The tab strip marks the current tab with aria-current="page". */}}
 <!doctype html>
 <html lang="en">
 <head>

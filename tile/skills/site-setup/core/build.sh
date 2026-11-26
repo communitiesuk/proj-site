@@ -34,7 +34,9 @@
 #                               `period_end` (all recent when there is no weeknote)
 #   src/data/upcoming.json      from the `upcoming.source` adapter
 #
-# Every section's index title is its tab name. The body of every copied page
+# Every section's index title is its tab name, and its `intro` the section's
+# one-line description (Guides, Docs, Weeknotes, Latest updates, Coming next);
+# a project's own _index.md is kept as it is. The body of every copied page
 # (overview, guides, hand-written docs, updates, weeknotes; not generated
 # reference) goes through `link_github` (lib.sh), linking #N, docs/ and plans/
 # paths and commit IDs to GitHub.
