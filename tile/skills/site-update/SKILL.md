@@ -12,7 +12,8 @@ What you edit:
 | File | Edit when |
 | --- | --- |
 | `site/content/overview.md` | it names a feature, command or output that the branch adds, removes, renames or changes |
-| `site/content/docs/**` | a passage describes behaviour the branch changed |
+| `site/content/guides/**` | a passage describes behaviour the branch changed |
+| `site/content/docs/**` | a passage describes behaviour the branch changed (not the generated reference) |
 | Docstrings in the code | a docstring no longer matches its function (reference docs are generated from them) |
 
 What you never edit: generated reference docs (they are built at deploy time), `site/content/changes/` and `site/content/summaries/` (the `site-writing` skill's), and behaviour in the code.
@@ -20,7 +21,7 @@ What you never edit: generated reference docs (they are built at deploy time), `
 ## Steps
 
 1. **Find what changed.** `git diff <trunk>...HEAD` and `git log <trunk>..HEAD`. List every public name the branch adds, removes or renames (functions, classes, commands, options, files, outputs), and every behaviour it changes.
-2. **Find stale passages.** For each item, search the hand-written docs and docstrings for it: `grep -rn "<name>" site/content/overview.md site/content/docs/ <source dirs>`. Also read each doc page whose topic the branch touches; a passage can be stale without naming the symbol.
+2. **Find stale passages.** For each item, search the hand-written docs and docstrings for it: `grep -rn "<name>" site/content/overview.md site/content/guides/ site/content/docs/ <source dirs>`. Also read each guide and doc page whose topic the branch touches; a passage can be stale without naming the symbol.
 3. **Edit, passage by passage.**
    - **Removed**: delete the passage, or replace it with one sentence saying the feature was removed and what to use instead, if the commits say. Delete a section heading whose content goes with it; keep the rest of the page.
    - **Renamed**: change every mention to the new name.
